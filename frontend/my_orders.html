@@ -1481,10 +1481,31 @@ function formatTime(isoString) {
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
-const token = getToken();
-const user = getUser();
-if (!token || !user) {
-  window.location.href = 'login.html';
+let _currentToken = getToken();
+let _currentUser = getUser();
+
+async function ensureSession() {
+  if (_currentToken && _currentUser) return true;
+  try {
+    const guestRes = await fetch(`${API_BASE}/auth/guest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!guestRes.ok) {
+      window.location.href = 'login.html';
+      return false;
+    }
+    const guestData = await guestRes.json();
+    localStorage.setItem('sv_token', guestData.token);
+    localStorage.setItem('sv_user', JSON.stringify(guestData.user));
+    localStorage.setItem('sv_is_guest', '1');
+    _currentToken = guestData.token;
+    _currentUser = guestData.user;
+    return true;
+  } catch (e) {
+    window.location.href = 'login.html';
+    return false;
+  }
 }
 
 let allOrders = [];
@@ -1540,10 +1561,10 @@ function wireShellAuth() {
     });
   });
 
-  if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
-  if (nameEl) nameEl.textContent = user.username || 'User';
+  if (avatarEl) avatarEl.textContent = (_currentUser ? (_currentUser.username || 'U') : 'G').charAt(0).toUpperCase();
+  if (nameEl) nameEl.textContent = _currentUser ? (_currentUser.username || 'User') : 'Guest';
   if (balanceEl) {
-    const cents = typeof user.balance === 'number' ? user.balance : 0;
+    const cents = _currentUser && typeof _currentUser.balance === 'number' ? _currentUser.balance : 0;
     balanceEl.innerHTML = formatBalance(cents) + ' <span>USD</span>';
   }
 }
@@ -1551,7 +1572,7 @@ function wireShellAuth() {
 async function downloadOrder(orderId) {
   try {
     const response = await fetch(`${API_BASE}/orders/${orderId}/download`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: { 'Authorization': `Bearer ${_currentToken}` }
     });
     if (response.status === 401 || response.status === 403) {
       localStorage.removeItem('sv_token');
@@ -1790,8 +1811,14 @@ if (searchBox) {
   });
 }
 
-wireShellAuth();
-loadOrders();
+async function init() {
+  const ok = await ensureSession();
+  if (!ok) return;
+  wireShellAuth();
+  await loadOrders();
+}
+
+init();
 </script>
 
   <script src="js/brands.js"></script>
