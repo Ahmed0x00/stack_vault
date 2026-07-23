@@ -129,140 +129,118 @@ router.get('/me', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
-// POST /api/auth/link-telegram
+// ─── Telegram OpenID Connect (OIDC) Auth ───
 const crypto = require('crypto');
+const axios = require('axios');
 
-function verifyTelegramAuth(data, botToken) {
-  if (!data || !data.hash || !data.id) return false;
-  if (!botToken) {
-    console.warn('TELEGRAM_BOT_TOKEN is not set in environment variables');
-    return false;
-  }
-  const { hash, ...userData } = data;
-  const dataCheckArr = [];
-  Object.keys(userData)
-    .sort()
-    .forEach((key) => {
-      if (userData[key] !== undefined && userData[key] !== null) {
-        dataCheckArr.push(`${key}=${userData[key]}`);
-      }
-    });
-  const dataCheckString = dataCheckArr.join('\n');
-  const secretKey = crypto.createHash('sha256').update(botToken).digest();
-  const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+const TG_CLIENT_ID = process.env.TELEGRAM_CLIENT_ID || '8725563030';
+const TG_CLIENT_SECRET = process.env.TELEGRAM_CLIENT_SECRET || '';
+const TG_REDIRECT_URI = 'https://decohomz.com/sv-api/api/auth/telegram-callback';
+const FRONTEND_URL = 'https://stackvault.shop';
 
-  const nowSec = Math.floor(Date.now() / 1000);
-  const isFresh = userData.auth_date && (nowSec - Number(userData.auth_date) < 86400);
+// GET /api/auth/telegram-redirect
+// Initiates the Telegram OIDC login flow
+router.get('/telegram-redirect', (req, res) => {
+  const mode = req.query.mode || 'login'; // 'login' or 'link'
+  const userToken = req.query.token || ''; // JWT for link mode
 
-  return computedHash.toLowerCase() === hash.toLowerCase() && isFresh;
-}
+  // Create a signed state token for CSRF protection
+  const state = jwt.sign(
+    { mode, userToken, ts: Date.now() },
+    JWT_SECRET,
+    { expiresIn: '10m' }
+  );
 
-// POST /api/auth/telegram-login
-router.post('/telegram-login', async (req, res) => {
-  try {
-    const telegramData = req.body;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const nonce = crypto.randomBytes(16).toString('hex');
 
-    if (!telegramData || !telegramData.id) {
-      return res.status(400).json({ error: 'Telegram authentication data required' });
-    }
+  const authUrl = `https://oauth.telegram.org/auth?` +
+    `client_id=${TG_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(TG_REDIRECT_URI)}` +
+    `&response_type=code` +
+    `&scope=openid` +
+    `&state=${encodeURIComponent(state)}` +
+    `&nonce=${nonce}`;
 
-    if (telegramData.hash && botToken) {
-      const isValid = verifyTelegramAuth(telegramData, botToken);
-      if (!isValid) {
-        return res.status(400).json({ error: 'Invalid or expired Telegram authentication signature' });
-      }
-    }
-
-    const tgId = Number(telegramData.id);
-    let user = await queryOne('SELECT * FROM users WHERE telegram_id = ?', [tgId]);
-
-    if (!user) {
-      const username = telegramData.username || telegramData.first_name || `tg_${tgId}`;
-      const email = `${tgId}@telegram.stackvault.xyz`;
-      const randomPassword = crypto.randomBytes(16).toString('hex');
-      const passwordHash = await bcrypt.hash(randomPassword, 10);
-
-      const result = await query(
-        'INSERT INTO users (email, username, password_hash, telegram_id, balance) VALUES (?, ?, ?, ?, 0)',
-        [email, username, passwordHash, tgId]
-      );
-      const userId = result.insertId;
-
-      try {
-        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-        const depositAddress = getDepositAddress(userId, masterSecret);
-        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
-      } catch (err) {}
-
-      user = await queryOne('SELECT * FROM users WHERE id = ?', [userId]);
-    } else {
-      if (!user.deposit_address) {
-        try {
-          const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-          user.deposit_address = getDepositAddress(user.id, masterSecret);
-          await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
-        } catch (e) {}
-      }
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    const safeUser = {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      balance: user.balance,
-      deposit_address: user.deposit_address,
-      telegram_id: user.telegram_id,
-      role: user.role,
-      created_at: user.created_at,
-    };
-
-    res.json({
-      message: 'Telegram login successful',
-      token,
-      user: safeUser,
-    });
-  } catch (error) {
-    console.error('Telegram login error:', error);
-    res.status(500).json({ error: 'Server error during Telegram login' });
-  }
+  res.redirect(authUrl);
 });
 
-// GET /api/auth/telegram-callback (data-auth-url redirect mode)
+// GET /api/auth/telegram-callback
+// Handles the OIDC callback from Telegram
 router.get('/telegram-callback', async (req, res) => {
   try {
-    const telegramData = req.query;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const { code, state } = req.query;
 
-    if (!telegramData || !telegramData.id) {
-      return res.redirect('https://stackvault.shop/login.html?error=missing_telegram_data');
+    if (!code || !state) {
+      return res.redirect(`${FRONTEND_URL}/login.html?tg_error=${encodeURIComponent('Missing authorization code')}`);
     }
 
-    if (telegramData.hash && botToken) {
-      const isValid = verifyTelegramAuth(telegramData, botToken);
-      if (!isValid) {
-        return res.redirect('https://stackvault.shop/login.html?error=invalid_telegram_signature');
+    // Verify state token
+    let stateData;
+    try {
+      stateData = jwt.verify(decodeURIComponent(state), JWT_SECRET);
+    } catch (e) {
+      return res.redirect(`${FRONTEND_URL}/login.html?tg_error=${encodeURIComponent('Invalid or expired state')}`);
+    }
+
+    // Exchange authorization code for tokens
+    const tokenRes = await axios.post('https://oauth.telegram.org/token',
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: TG_REDIRECT_URI,
+        client_id: TG_CLIENT_ID,
+        client_secret: TG_CLIENT_SECRET,
+      }).toString(),
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      }
+    );
+
+    const { id_token } = tokenRes.data;
+
+    if (!id_token) {
+      return res.redirect(`${FRONTEND_URL}/login.html?tg_error=${encodeURIComponent('No ID token received from Telegram')}`);
+    }
+
+    // Decode the ID token (trusted — received directly from Telegram over HTTPS with our client_secret)
+    const decoded = jwt.decode(id_token);
+
+    if (!decoded || !decoded.sub) {
+      return res.redirect(`${FRONTEND_URL}/login.html?tg_error=${encodeURIComponent('Invalid ID token')}`);
+    }
+
+    const tgId = Number(decoded.sub);
+    const tgUsername = decoded.username || decoded.first_name || `tg_${tgId}`;
+
+    // ─── LINK MODE: Link Telegram to existing account ───
+    if (stateData.mode === 'link' && stateData.userToken) {
+      try {
+        const userData = jwt.verify(stateData.userToken, JWT_SECRET);
+
+        // Check if this Telegram ID is already linked to another user
+        const existing = await queryOne('SELECT id FROM users WHERE telegram_id = ? AND id != ?', [tgId, userData.id]);
+        if (existing) {
+          return res.redirect(`${FRONTEND_URL}/my_account.html?tg_error=${encodeURIComponent('This Telegram account is already linked to another user')}`);
+        }
+
+        await query('UPDATE users SET telegram_id = ? WHERE id = ?', [tgId, userData.id]);
+        return res.redirect(`${FRONTEND_URL}/my_account.html?tg_linked=1`);
+      } catch (e) {
+        return res.redirect(`${FRONTEND_URL}/login.html?tg_error=${encodeURIComponent('Session expired, please log in again')}`);
       }
     }
 
-    const tgId = Number(telegramData.id);
+    // ─── LOGIN MODE: Find or create user ───
     let user = await queryOne('SELECT * FROM users WHERE telegram_id = ?', [tgId]);
 
     if (!user) {
-      const username = telegramData.username || telegramData.first_name || `tg_${tgId}`;
-      const email = `${tgId}@telegram.stackvault.xyz`;
+      const email = `${tgId}@telegram.stackvault.shop`;
       const randomPassword = crypto.randomBytes(16).toString('hex');
       const passwordHash = await bcrypt.hash(randomPassword, 10);
 
       const result = await query(
         'INSERT INTO users (email, username, password_hash, telegram_id, balance) VALUES (?, ?, ?, ?, 0)',
-        [email, username, passwordHash, tgId]
+        [email, tgUsername, passwordHash, tgId]
       );
       const userId = result.insertId;
 
@@ -300,30 +278,21 @@ router.get('/telegram-callback', async (req, res) => {
       created_at: user.created_at,
     };
 
-    const redirectUrl = `https://stackvault.shop/login.html?tg_token=${encodeURIComponent(token)}&tg_user=${encodeURIComponent(JSON.stringify(safeUser))}`;
+    const redirectUrl = `${FRONTEND_URL}/login.html?tg_token=${encodeURIComponent(token)}&tg_user=${encodeURIComponent(JSON.stringify(safeUser))}`;
     return res.redirect(redirectUrl);
   } catch (error) {
-    console.error('Telegram callback error:', error);
-    return res.redirect('https://stackvault.shop/login.html?error=server_error');
+    console.error('Telegram OIDC callback error:', error.response?.data || error.message || error);
+    return res.redirect(`${FRONTEND_URL}/login.html?tg_error=${encodeURIComponent('Telegram authentication failed')}`);
   }
 });
 
-// POST /api/auth/link-telegram
+// POST /api/auth/link-telegram (legacy manual ID entry fallback)
 router.post('/link-telegram', authenticateToken, async (req, res) => {
   try {
     const telegramData = req.body;
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-
     const tgId = telegramData.id || telegramData.telegram_id;
     if (!tgId) {
       return res.status(400).json({ error: 'Telegram ID is required' });
-    }
-
-    if (telegramData.hash && botToken) {
-      const isValid = verifyTelegramAuth(telegramData, botToken);
-      if (!isValid) {
-        return res.status(400).json({ error: 'Invalid or expired Telegram signature' });
-      }
     }
 
     const existing = await queryOne('SELECT id FROM users WHERE telegram_id = ? AND id != ?', [Number(tgId), req.user.id]);
@@ -340,3 +309,4 @@ router.post('/link-telegram', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
+

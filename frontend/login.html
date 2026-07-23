@@ -168,15 +168,13 @@
   <h1>Welcome back</h1>
   <p class="sub">Log in to access your orders, balance, and licenses.</p>
 
-  <div class="telegram-widget-wrap" style="margin-bottom:18px; display:flex; justify-content:center;">
-    <script async src="https://telegram.org/js/telegram-widget.js?22"
-      data-telegram-login="stackvault_bot"
-      data-size="large"
-      data-radius="10"
-      data-auth-url="https://decohomz.com/sv-api/api/auth/telegram-callback"
-      data-request-access="write">
-    </script>
-  </div>
+  <a href="https://decohomz.com/sv-api/api/auth/telegram-redirect" class="telegram-btn" id="telegram-login-btn">
+    <svg viewBox="0 0 240 240" fill="none">
+      <path fill="white"
+        d="M54 118l134-51c6-2 12 2 10 10l-23 108c-2 9-8 11-15 7l-38-28-19 18c-2 2-4 3-7 3l3-38 70-63c3-3-1-4-4-2l-87 55-37-12c-8-2-8-8 2-11z" />
+    </svg>
+    Continue with Telegram
+  </a>
 
   <div class="divider">OR LOG IN WITH EMAIL</div>
 
@@ -282,7 +280,7 @@ const emailInput = document.querySelector('.field input[type="email"]');
 const passwordInput = document.querySelector('.field input[type="password"]');
 const loginBtn = document.querySelector('.login-btn');
 const toggleBtn = document.querySelector('.toggle-visibility');
-const telegramBtn = document.querySelector('.telegram-btn');
+
 
 const errorEl = document.createElement('div');
 errorEl.style.cssText = 'color:#f66161;font-size:12.5px;margin-bottom:12px;display:none;';
@@ -303,24 +301,14 @@ toggleBtn.addEventListener('click', () => {
   passwordInput.type = isPassword ? 'text' : 'password';
 });
 
-window.onTelegramAuth = async function(telegramUser) {
-  clearError();
-  try {
-    const data = await apiFetch('/api/auth/telegram-login', {
-      method: 'POST',
-      body: JSON.stringify(telegramUser)
-    });
-    localStorage.setItem('sv_token', data.token);
-    localStorage.setItem('sv_user', JSON.stringify(data.user));
-    window.location.href = 'home.html';
-  } catch (err) {
-    if (err && err.error) {
-      showError(err.error);
-    } else {
-      showError('Server unavailable, try again');
-    }
+// Show error from Telegram OIDC redirect if present
+(function() {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('tg_error')) {
+    showError(decodeURIComponent(p.get('tg_error')));
+    window.history.replaceState({}, '', 'login.html');
   }
-};
+})();
 
 loginBtn.addEventListener('click', async (e) => {
   e.preventDefault();
