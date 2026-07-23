@@ -37,7 +37,15 @@ router.get('/', async (req, res) => {
       return res.status(502).json({ error: 'Failed to fetch products from supplier API' });
     }
 
-    const processedProducts = rawProducts.map((p) => {
+    // Fetch details for all products concurrently to get actual stock
+    const detailedProducts = await Promise.all(
+      rawProducts.map(async (p) => {
+        const detail = await prodseller.getProduct(p.id);
+        return { ...p, stock: detail ? detail.stock : (p.inStock ? 10 : 0) };
+      })
+    );
+
+    const processedProducts = detailedProducts.map((p) => {
       const costDollars = p.price || 0;
       const costCents = dollarsToCents(costDollars);
       const sellCents = getSellPriceCents(costCents);
