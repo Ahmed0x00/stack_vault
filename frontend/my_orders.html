@@ -1566,10 +1566,13 @@ async function downloadOrder(orderId) {
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = url;
     const cd = response.headers.get('Content-Disposition');
     a.download = (cd && cd.split('filename=')[1]) ? cd.split('filename=')[1].replace(/"/g, '') : `order_${orderId}.txt`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch (err) {
     svToast('Server unavailable, try again', 'error');
