@@ -914,7 +914,7 @@ function showDepositSuccess(amountCents, newBalanceCents) {
   const amountStr = '$' + (amountCents / 100).toFixed(2);
   const newBalanceStr = '$' + (newBalanceCents / 100).toFixed(2);
   
-  const waitSection = document.querySelector('.wait-section');
+  const waitSection = document.querySelector('.waiting');
   if (waitSection) {
     waitSection.innerHTML = `
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
