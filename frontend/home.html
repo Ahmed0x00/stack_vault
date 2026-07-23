@@ -671,7 +671,7 @@ async function apiFetch(endpoint, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  const res = await fetch(`${API_BASE}${endpoint.replace(/^\/api/, '')}`, { ...options, headers: { ...headers, ...options.headers } });
   const data = await res.json();
 
   if (res.status === 401 || res.status === 403) {

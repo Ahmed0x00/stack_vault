@@ -135,7 +135,7 @@ const axios = require('axios');
 
 const TG_CLIENT_ID = process.env.TELEGRAM_CLIENT_ID || '8725563030';
 const TG_CLIENT_SECRET = process.env.TELEGRAM_CLIENT_SECRET || '';
-const TG_REDIRECT_URI = 'https://decohomz.com/sv-api/api/auth/telegram-callback';
+const TG_REDIRECT_URI = 'https://decohomz.com/sv-api/auth/telegram-callback';
 const FRONTEND_URL = 'https://stackvault.shop';
 
 // GET /api/auth/telegram-redirect

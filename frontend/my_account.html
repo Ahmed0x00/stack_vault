@@ -613,7 +613,7 @@ async function apiFetch(endpoint, options = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  const res = await fetch(`${API_BASE}${endpoint.replace(/^\/api/, '')}`, { ...options, headers: { ...headers, ...options.headers } });
   const data = await res.json();
 
   if (res.status === 401 || res.status === 403) {
@@ -804,7 +804,7 @@ async function loadAccount() {
     // Wire OIDC link button with user's token
     if (telegramLinkBtn) {
       const token = getToken();
-      telegramLinkBtn.href = `https://decohomz.com/sv-api/api/auth/telegram-redirect?mode=link&token=${encodeURIComponent(token)}`;
+      telegramLinkBtn.href = `https://decohomz.com/sv-api/auth/telegram-redirect?mode=link&token=${encodeURIComponent(token)}`;
     }
 
     if (u.telegram_id) {
