@@ -1,7 +1,96 @@
+# ===========================
+# Dependencies
+# ===========================
 node_modules/
+bower_components/
+
+# ===========================
+# Environment / Secrets
+# ===========================
 .env
+.env.*
+*.env
 .env.local
-.DS_Store
-dist/
-*.log
+.env.development
+.env.production
+.env.staging
+
+# ===========================
+# Database files
+# ===========================
+*.db
+*.sqlite
+*.sqlite3
 data.db
+
+# ===========================
+# Deployment & Credential Scripts
+# (These contain server passwords and API keys)
+# ===========================
+backend/deploy_vps.py
+backend/remote_exec.py
+backend/deploy.sh
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# ===========================
+# One-off utility / migration scripts
+# ===========================
+fix_*.py
+upload_*.py
+test_*.sql
+
+# ===========================
+# Build output
+# ===========================
+dist/
+build/
+.next/
+.nuxt/
+out/
+
+# ===========================
+# Logs
+# ===========================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===========================
+# OS / Editor files
+# ===========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# ===========================
+# Temporary files
+# ===========================
+*.tmp
+*.temp
+.cache/
