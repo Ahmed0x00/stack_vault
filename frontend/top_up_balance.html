@@ -765,5 +765,132 @@
 })();
 </script>
 
+<script>
+const API_BASE = 'https://stackvault-api.stackvault.xyz';
+
+function getToken() {
+  return localStorage.getItem('sv_token');
+}
+
+function getUser() {
+  return JSON.parse(localStorage.getItem('sv_user') || 'null');
+}
+
+async function apiFetch(endpoint, options = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await res.json();
+
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('sv_token');
+    localStorage.removeItem('sv_user');
+    window.location.href = 'login.html';
+    return null;
+  }
+
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+function formatBalance(cents) {
+  return '$' + (cents / 100).toFixed(2);
+}
+
+const token = getToken();
+const user = getUser();
+if (!token || !user) {
+  window.location.href = 'login.html';
+}
+
+function wireShellAuth() {
+  const balanceEl = document.querySelector('.balance-amount');
+  const avatarEl = document.querySelector('.top-user .avatar');
+  const nameEl = document.querySelector('.top-user span');
+  const logoutLink = document.querySelector('.user-dropdown a[href="login.html"]');
+
+  document.querySelectorAll('.nav-item').forEach((link) => {
+    const text = link.textContent.trim();
+    if (text === 'Telegram Seller' || text === 'Support') {
+      link.href = 'https://t.me/stackvault_bot';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+  });
+
+  const contactBtn = document.querySelector('.contact-btn');
+  if (contactBtn) {
+    contactBtn.href = 'https://t.me/stackvault_bot';
+    contactBtn.target = '_blank';
+    contactBtn.rel = 'noopener noreferrer';
+  }
+
+  if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('sv_token');
+      localStorage.removeItem('sv_user');
+      window.location.href = 'login.html';
+    });
+  }
+
+  if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
+  if (nameEl) nameEl.textContent = user.username || 'User';
+  if (balanceEl) {
+    const cents = typeof user.balance === 'number' ? user.balance : 0;
+    balanceEl.innerHTML = formatBalance(cents) + ' <span>USD</span>';
+  }
+}
+
+async function loadDepositInfo() {
+  try {
+    const data = await apiFetch('/api/balance/deposit-info');
+    if (!data) return;
+
+    const addrInput = document.getElementById('depositAddr');
+    if (addrInput && data.usdt && data.usdt.address) {
+      addrInput.value = data.usdt.address;
+    }
+
+    const payId = document.getElementById('binancePayId');
+    if (payId && data.binancePay && data.binancePay.payId) {
+      payId.textContent = data.binancePay.payId;
+    }
+
+    const networkPill = document.querySelector('.network-pill');
+    if (networkPill && data.usdt && data.usdt.network) {
+      networkPill.textContent = data.usdt.network;
+    } else if (networkPill) {
+      networkPill.textContent = 'BEP20 (Binance Smart Chain)';
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadBalance() {
+  try {
+    const data = await apiFetch('/api/balance');
+    if (!data) return;
+    const balanceEl = document.querySelector('.balance-amount');
+    if (balanceEl) {
+      balanceEl.innerHTML = '$' + data.balance + ' <span>USD</span>';
+    }
+    const u = getUser() || {};
+    if (data.balanceCents != null) u.balance = data.balanceCents;
+    else if (data.balance != null) u.balance = Math.round(parseFloat(data.balance) * 100);
+    localStorage.setItem('sv_user', JSON.stringify(u));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+wireShellAuth();
+loadDepositInfo();
+loadBalance();
+</script>
+
 </body>
 </html>

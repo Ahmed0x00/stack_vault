@@ -166,13 +166,15 @@
   <h1>Create your account</h1>
   <p class="sub">Sign up to start buying digital subscriptions and license keys.</p>
 
-  <button class="telegram-btn" type="button">
-    <svg viewBox="0 0 240 240" fill="none">
-      <path fill="white"
-        d="M54 118l134-51c6-2 12 2 10 10l-23 108c-2 9-8 11-15 7l-38-28-19 18c-2 2-4 3-7 3l3-38 70-63c3-3-1-4-4-2l-87 55-37-12c-8-2-8-8 2-11z" />
-    </svg>
-    Continue with Telegram
-  </button>
+  <div class="telegram-widget-wrap" style="margin-bottom:18px; display:flex; justify-content:center;">
+    <script async src="https://telegram.org/js/telegram-widget.js?22"
+      data-telegram-login="stackvault_bot"
+      data-size="large"
+      data-radius="10"
+      data-onauth="onTelegramAuth(user)"
+      data-request-access="write">
+    </script>
+  </div>
 
   <div class="divider">OR SIGN UP WITH EMAIL</div>
 
@@ -231,6 +233,146 @@
     Already have an account? <a href="login.html">Log in</a>
   </div>
 </div>
+
+<script>
+const API_BASE = 'https://stackvault-api.stackvault.xyz';
+
+function getToken() {
+  return localStorage.getItem('sv_token');
+}
+
+function getUser() {
+  return JSON.parse(localStorage.getItem('sv_user') || 'null');
+}
+
+async function apiFetch(endpoint, options = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await res.json();
+
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('sv_token');
+    localStorage.removeItem('sv_user');
+    window.location.href = 'login.html';
+    return null;
+  }
+
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+if (getToken() && getUser()) {
+  window.location.href = 'home.html';
+}
+
+const usernameInput = document.querySelector('.field input[type="text"]');
+const emailInput = document.querySelector('.field input[type="email"]');
+const passwordInput = document.querySelector('.field input[type="password"]');
+const termsCheckbox = document.querySelector('.terms input[type="checkbox"]');
+const createBtn = document.querySelector('.create-btn');
+const toggleBtn = document.querySelector('.toggle-visibility');
+const telegramBtn = document.querySelector('.telegram-btn');
+
+const errorEl = document.createElement('div');
+errorEl.style.cssText = 'color:#f66161;font-size:12.5px;margin-bottom:12px;display:none;';
+createBtn.parentNode.insertBefore(errorEl, createBtn);
+
+function showError(msg) {
+  errorEl.textContent = msg;
+  errorEl.style.display = 'block';
+}
+
+function clearError() {
+  errorEl.textContent = '';
+  errorEl.style.display = 'none';
+}
+
+toggleBtn.addEventListener('click', () => {
+  const isPassword = passwordInput.type === 'password';
+  passwordInput.type = isPassword ? 'text' : 'password';
+});
+
+window.onTelegramAuth = async function(telegramUser) {
+  clearError();
+  try {
+    const data = await apiFetch('/api/auth/telegram-login', {
+      method: 'POST',
+      body: JSON.stringify(telegramUser)
+    });
+    localStorage.setItem('sv_token', data.token);
+    localStorage.setItem('sv_user', JSON.stringify(data.user));
+    window.location.href = 'home.html';
+  } catch (err) {
+    if (err && err.error) {
+      showError(err.error);
+    } else {
+      showError('Server unavailable, try again');
+    }
+  }
+};
+
+createBtn.addEventListener('click', async (e) => {
+  e.preventDefault();
+  clearError();
+
+  const username = usernameInput.value.trim();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!username) {
+    showError('Username is required');
+    return;
+  }
+  if (!email) {
+    showError('Email is required');
+    return;
+  }
+  if (!password) {
+    showError('Password is required');
+    return;
+  }
+  if (password.length < 6) {
+    showError('Password must be at least 6 characters long');
+    return;
+  }
+  if (!termsCheckbox.checked) {
+    showError('You must agree to the Terms of Service');
+    return;
+  }
+
+  const originalHTML = createBtn.innerHTML;
+  createBtn.disabled = true;
+  createBtn.textContent = 'Creating account...';
+
+  try {
+    const data = await apiFetch('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, username, password })
+    });
+
+    localStorage.setItem('sv_token', data.token);
+    localStorage.setItem('sv_user', JSON.stringify(data.user));
+    window.location.href = 'home.html';
+  } catch (err) {
+    if (err && err.error) {
+      showError(err.error);
+    } else {
+      showError('Server unavailable, try again');
+    }
+    createBtn.disabled = false;
+    createBtn.innerHTML = originalHTML;
+  }
+});
+
+[usernameInput, emailInput, passwordInput].forEach((input) => {
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') createBtn.click();
+  });
+});
+</script>
 
 </body>
 </html>

@@ -655,5 +655,188 @@
 })();
 </script>
 
+<script>
+const API_BASE = 'https://stackvault-api.stackvault.xyz';
+
+function getToken() {
+  return localStorage.getItem('sv_token');
+}
+
+function getUser() {
+  return JSON.parse(localStorage.getItem('sv_user') || 'null');
+}
+
+async function apiFetch(endpoint, options = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await res.json();
+
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('sv_token');
+    localStorage.removeItem('sv_user');
+    window.location.href = 'login.html';
+    return null;
+  }
+
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+function formatBalance(cents) {
+  return '$' + (cents / 100).toFixed(2);
+}
+
+function getCategoryColor(cat) {
+  const colors = {
+    ai: '#0f8a6b',
+    software: '#1b1e27',
+    streaming: '#1b1e27',
+    design: 'linear-gradient(135deg, #00c4cc, #7d2ae8)',
+    learning: '#0056d2',
+    emails: '#1b1e27',
+    general: '#1b1e27'
+  };
+  return colors[cat] || '#1b1e27';
+}
+
+const BOX_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 3v18"/></svg>';
+const CART_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M3 3h2l2.4 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.6L20 8H7"/></svg>';
+
+function wireShellAuth() {
+  const token = getToken();
+  const user = getUser();
+  const balanceEl = document.querySelector('.balance-amount');
+  const avatarEl = document.querySelector('.top-user .avatar');
+  const nameEl = document.querySelector('.top-user span');
+  const topUser = document.querySelector('.top-user');
+  const logoutLink = document.querySelector('.user-dropdown a[href="login.html"]');
+
+  document.querySelectorAll('.nav-item').forEach((link) => {
+    const text = link.textContent.trim();
+    if (text === 'Telegram Seller' || text === 'Support') {
+      link.href = 'https://t.me/stackvault_bot';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+  });
+
+  const contactBtn = document.querySelector('.contact-btn');
+  if (contactBtn) {
+    contactBtn.href = 'https://t.me/stackvault_bot';
+    contactBtn.target = '_blank';
+    contactBtn.rel = 'noopener noreferrer';
+  }
+
+  const telegramCta = document.querySelector('.btn-secondary');
+  if (telegramCta) {
+    telegramCta.href = 'https://t.me/stackvault_bot';
+    telegramCta.target = '_blank';
+    telegramCta.rel = 'noopener noreferrer';
+  }
+
+  if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('sv_token');
+      localStorage.removeItem('sv_user');
+      window.location.href = 'login.html';
+    });
+  }
+
+  if (token && user) {
+    if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
+    if (nameEl) nameEl.textContent = user.username || 'User';
+    if (topUser) topUser.href = 'my_account.html';
+    if (balanceEl) {
+      const cents = typeof user.balance === 'number' ? user.balance : 0;
+      balanceEl.innerHTML = formatBalance(cents) + ' <span>USD</span>';
+    }
+    apiFetch('/api/auth/me').then((data) => {
+      if (!data || !data.user) return;
+      localStorage.setItem('sv_user', JSON.stringify(data.user));
+      if (balanceEl) balanceEl.innerHTML = formatBalance(data.user.balance) + ' <span>USD</span>';
+      if (avatarEl) avatarEl.textContent = (data.user.username || 'U').charAt(0).toUpperCase();
+      if (nameEl) nameEl.textContent = data.user.username || 'User';
+    }).catch(() => {});
+  } else {
+    if (balanceEl) balanceEl.innerHTML = '<a href="login.html" style="color:inherit;text-decoration:none;">Log In</a>';
+    if (avatarEl) avatarEl.textContent = '?';
+    if (nameEl) nameEl.textContent = 'Guest';
+    if (topUser) topUser.href = 'login.html';
+    const balanceBox = document.querySelector('.balance-box');
+    if (balanceBox) balanceBox.href = 'login.html';
+  }
+}
+
+function renderProductCard(product) {
+  const stockLabel = product.inStock ? 'In Stock' : 'Out of Stock';
+  const price = typeof product.price === 'number' ? product.price.toFixed(2) : product.price;
+  const desc = (product.description || '').replace(/</g, '&lt;');
+  return `
+    <div class="product-card">
+      <div class="card-top">
+        <div class="product-thumb" style="background:${getCategoryColor(product.category)}">
+          ${BOX_ICON}
+        </div>
+        <div class="card-meta">
+          <div class="card-meta-row">
+            <div>
+              <div class="card-cat">${product.categoryName || product.category || ''}</div>
+              <div class="card-title">${product.name || ''}</div>
+            </div>
+            <span class="badge-stock">${stockLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-desc">${desc}</div>
+      <div class="card-price">$${price}</div>
+      <button class="buy-btn" data-product-id="${product.id}">
+        ${CART_ICON}
+        Buy Now
+      </button>
+    </div>
+  `;
+}
+
+async function loadProducts() {
+  const grid = document.querySelector('.grid');
+  const eyebrow = document.querySelector('.eyebrow');
+  if (!grid) return;
+
+  try {
+    const data = await apiFetch('/api/products');
+    const products = (data && data.products) || [];
+    if (eyebrow) {
+      eyebrow.innerHTML = `<span class="dot"></span> ${products.length} products · delivered in minutes`;
+    }
+    const top = products.slice(0, 6);
+    grid.innerHTML = top.map(renderProductCard).join('');
+    grid.querySelectorAll('.buy-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        window.location.href = `product_details.html?id=${btn.dataset.productId}`;
+      });
+    });
+  } catch (err) {
+    grid.innerHTML = '<p style="color:var(--text-mid);grid-column:1/-1;">Unable to load products. Please try again later.</p>';
+  }
+}
+
+const searchInput = document.querySelector('.topbar-search input');
+if (searchInput) {
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const q = searchInput.value.trim();
+      window.location.href = q ? `products.html?search=${encodeURIComponent(q)}` : 'products.html';
+    }
+  });
+}
+
+wireShellAuth();
+loadProducts();
+</script>
+
 </body>
 </html>

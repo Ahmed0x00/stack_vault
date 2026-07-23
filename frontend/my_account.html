@@ -519,10 +519,23 @@
                 <p class="card-desc">Sync your balance with <b style="color:var(--text)">@stackvault_bot</b> and get
                     order updates there too.</p>
 
-                <div class="field-label">TELEGRAM USER ID (OPTIONAL)</div>
-                <div class="telegram-row">
-                    <input class="telegram-input" placeholder="e.g. 123456789">
-                    <button class="link-btn">Link</button>
+                <div id="telegram-link-container">
+                  <div class="field-label" style="margin-top:10px;">QUICK LINK VIA TELEGRAM</div>
+                  <div style="margin: 10px 0 16px 0;">
+                    <script async src="https://telegram.org/js/telegram-widget.js?22"
+                      data-telegram-login="stackvault_bot"
+                      data-size="large"
+                      data-radius="10"
+                      data-onauth="onTelegramLinkAuth(user)"
+                      data-request-access="write">
+                    </script>
+                  </div>
+
+                  <div class="field-label">OR ENTER TELEGRAM USER ID MANUALLY</div>
+                  <div class="telegram-row">
+                      <input class="telegram-input" placeholder="e.g. 123456789">
+                      <button class="link-btn">Link</button>
+                  </div>
                 </div>
 
                 <div class="one-liner">
@@ -583,6 +596,255 @@
     if (e.key === "Escape") close();
   });
 })();
+</script>
+
+<script>
+const API_BASE = 'https://stackvault-api.stackvault.xyz';
+
+function getToken() {
+  return localStorage.getItem('sv_token');
+}
+
+function getUser() {
+  return JSON.parse(localStorage.getItem('sv_user') || 'null');
+}
+
+async function apiFetch(endpoint, options = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await res.json();
+
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('sv_token');
+    localStorage.removeItem('sv_user');
+    window.location.href = 'login.html';
+    return null;
+  }
+
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+function formatBalance(cents) {
+  return '$' + (cents / 100).toFixed(2);
+}
+
+function formatDate(isoString) {
+  const d = new Date(isoString);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatTime(isoString) {
+  const d = new Date(isoString);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+const token = getToken();
+const user = getUser();
+if (!token || !user) {
+  window.location.href = 'login.html';
+}
+
+function wireShellAuth() {
+  const balanceEl = document.querySelector('.balance-amount');
+  const avatarEl = document.querySelector('.top-user .avatar');
+  const nameEl = document.querySelector('.top-user span');
+  const logoutLink = document.querySelector('.user-dropdown a[href="login.html"]');
+
+  document.querySelectorAll('.nav-item').forEach((link) => {
+    const text = link.textContent.trim();
+    if (text === 'Telegram Seller' || text === 'Support') {
+      link.href = 'https://t.me/stackvault_bot';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+  });
+
+  const contactBtn = document.querySelector('.contact-btn');
+  if (contactBtn) {
+    contactBtn.href = 'https://t.me/stackvault_bot';
+    contactBtn.target = '_blank';
+    contactBtn.rel = 'noopener noreferrer';
+  }
+
+  if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('sv_token');
+      localStorage.removeItem('sv_user');
+      window.location.href = 'login.html';
+    });
+  }
+
+  if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
+  if (nameEl) nameEl.textContent = user.username || 'User';
+  if (balanceEl) {
+    const cents = typeof user.balance === 'number' ? user.balance : 0;
+    balanceEl.innerHTML = formatBalance(cents) + ' <span>USD</span>';
+  }
+}
+
+function renderTransactions(transactions) {
+  const txnCard = document.querySelector('.txn-card');
+  if (!txnCard) return;
+
+  const empty = txnCard.querySelector('.txn-empty');
+  if (!transactions || transactions.length === 0) {
+    if (empty) empty.style.display = '';
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+
+  let list = txnCard.querySelector('.txn-list');
+  if (!list) {
+    list = document.createElement('div');
+    list.className = 'txn-list';
+    list.style.cssText = 'margin-top:18px;display:flex;flex-direction:column;gap:10px;';
+    txnCard.appendChild(list);
+  }
+
+  list.innerHTML = transactions.map((tx) => {
+    const color = tx.isCredit ? '#34d399' : '#f66161';
+    const absAmt = Math.abs(parseFloat(tx.amount) || 0).toFixed(2);
+    const displayAmt = (tx.isCredit ? '+$' : '-$') + absAmt;
+    const desc = (tx.description || tx.type || 'Transaction').replace(/</g, '&lt;');
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;background:var(--surface-2,#151a26);border:1px solid var(--border,#1f2433);border-radius:10px;">
+        <div style="min-width:0;">
+          <div style="font-weight:600;font-size:13.5px;margin-bottom:2px;">${desc}</div>
+          <div style="font-size:12px;color:var(--text-dim,#8b91a3);">${formatDate(tx.createdAt)} · ${formatTime(tx.createdAt)} · ${tx.status || ''}</div>
+        </div>
+        <div style="font-weight:700;font-size:14px;color:${color};white-space:nowrap;">${displayAmt}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function loadAccount() {
+  try {
+    const [meData, balanceData] = await Promise.all([
+      apiFetch('/api/auth/me'),
+      apiFetch('/api/balance')
+    ]);
+
+    if (!meData || !meData.user) return;
+    const u = meData.user;
+    localStorage.setItem('sv_user', JSON.stringify(u));
+
+    const profileAvatar = document.querySelector('.profile-avatar');
+    const profileName = document.querySelector('.profile-name');
+    const profileEmail = document.querySelector('.profile-email');
+    const profileMember = document.querySelector('.profile-member');
+    const topAvatar = document.querySelector('.top-user .avatar');
+    const topName = document.querySelector('.top-user span');
+
+    if (profileAvatar) profileAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    if (profileName) profileName.textContent = u.username || '';
+    if (profileEmail) profileEmail.textContent = u.email || '';
+    if (profileMember && u.created_at) {
+      const d = new Date(u.created_at);
+      profileMember.textContent = 'Member since ' + d.toLocaleDateString('en-GB');
+    }
+    if (topAvatar) topAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    if (topName) topName.textContent = u.username || 'User';
+
+    const sidebarBalance = document.querySelector('.balance-amount');
+    const profileBalance = document.querySelector('.profile-balance .amt');
+
+    if (balanceData) {
+      if (sidebarBalance) sidebarBalance.innerHTML = '$' + balanceData.balance + ' <span>USD</span>';
+      if (profileBalance) profileBalance.innerHTML = '$' + balanceData.balance + ' <span>USD</span>';
+
+      const addrInput = document.querySelector('.addr-input');
+      if (addrInput && balanceData.depositAddress) {
+        addrInput.value = balanceData.depositAddress;
+      } else if (addrInput && u.deposit_address) {
+        addrInput.value = u.deposit_address;
+      }
+
+      renderTransactions(balanceData.transactions || []);
+    } else {
+      if (sidebarBalance) sidebarBalance.innerHTML = formatBalance(u.balance) + ' <span>USD</span>';
+      if (profileBalance) profileBalance.innerHTML = formatBalance(u.balance) + ' <span>USD</span>';
+      const addrInput = document.querySelector('.addr-input');
+      if (addrInput && u.deposit_address) addrInput.value = u.deposit_address;
+    }
+
+    const telegramInput = document.querySelector('.telegram-input');
+    const linkBtn = document.querySelector('.link-btn');
+    const telegramNote = document.querySelectorAll('.card .one-liner span')[1];
+
+    window.onTelegramLinkAuth = async function(telegramUser) {
+      try {
+        const res = await apiFetch('/api/auth/link-telegram', {
+          method: 'POST',
+          body: JSON.stringify(telegramUser)
+        });
+        const currentUser = getUser();
+        if (currentUser) {
+          currentUser.telegram_id = telegramUser.id;
+          localStorage.setItem('sv_user', JSON.stringify(currentUser));
+        }
+        alert((res && res.message) || 'Telegram account linked successfully!');
+        window.location.reload();
+      } catch (err) {
+        alert((err && err.error) || 'Failed to link Telegram account');
+      }
+    };
+
+    if (u.telegram_id) {
+      if (telegramInput) {
+        telegramInput.value = String(u.telegram_id);
+        telegramInput.disabled = true;
+      }
+      if (linkBtn) {
+        linkBtn.textContent = 'Linked';
+        linkBtn.disabled = true;
+      }
+      const widgetWrap = document.querySelector('#telegram-link-container > div');
+      if (widgetWrap) widgetWrap.style.display = 'none';
+      if (telegramNote) telegramNote.innerHTML = '<b style="color:var(--green,#34d399);">Telegram linked</b> — your account is synced with the bot.';
+    } else if (linkBtn) {
+      linkBtn.addEventListener('click', async () => {
+        const id = (telegramInput && telegramInput.value.trim()) || '';
+        if (!id || !/^\d+$/.test(id)) {
+          alert('Enter a valid numeric Telegram user ID');
+          return;
+        }
+        const original = linkBtn.textContent;
+        linkBtn.disabled = true;
+        linkBtn.textContent = 'Linking...';
+        try {
+          const res = await apiFetch('/api/auth/link-telegram', {
+            method: 'POST',
+            body: JSON.stringify({ telegram_id: Number(id) })
+          });
+          linkBtn.textContent = 'Linked';
+          if (telegramInput) telegramInput.disabled = true;
+          const currentUser = getUser();
+          if (currentUser) {
+            currentUser.telegram_id = Number(id);
+            localStorage.setItem('sv_user', JSON.stringify(currentUser));
+          }
+          alert((res && res.message) || 'Telegram account linked successfully');
+        } catch (err) {
+          alert((err && err.error) || 'Server unavailable, try again');
+          linkBtn.disabled = false;
+          linkBtn.textContent = original;
+        }
+      });
+    }
+  } catch (err) {
+    alert((err && err.error) || 'Server unavailable, try again');
+  }
+}
+
+wireShellAuth();
+loadAccount();
 </script>
 
 </body>

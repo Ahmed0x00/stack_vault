@@ -1432,6 +1432,334 @@
 })();
 </script>
 
+<script>
+const API_BASE = 'https://stackvault-api.stackvault.xyz';
+
+function getToken() {
+  return localStorage.getItem('sv_token');
+}
+
+function getUser() {
+  return JSON.parse(localStorage.getItem('sv_user') || 'null');
+}
+
+async function apiFetch(endpoint, options = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  const data = await res.json();
+
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('sv_token');
+    localStorage.removeItem('sv_user');
+    window.location.href = 'login.html';
+    return null;
+  }
+
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+function formatBalance(cents) {
+  return '$' + (cents / 100).toFixed(2);
+}
+
+function formatDate(isoString) {
+  const d = new Date(isoString);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatTime(isoString) {
+  const d = new Date(isoString);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+const token = getToken();
+const user = getUser();
+if (!token || !user) {
+  window.location.href = 'login.html';
+}
+
+let allOrders = [];
+let activeFilter = 'all';
+let searchQuery = '';
+
+const COLORS = ['#10a37f', '#00c4cc', '#e35a29', '#e50914', '#1ed760', '#0056d2', '#6d5ef8', '#f5b942'];
+
+function getColor(name) {
+  let hash = 0;
+  const s = name || '';
+  for (let i = 0; i < s.length; i++) hash = s.charCodeAt(i) + ((hash << 5) - hash);
+  return COLORS[Math.abs(hash) % COLORS.length];
+}
+
+function getInitial(name) {
+  return (name || '?').charAt(0).toUpperCase();
+}
+
+function capitalize(s) {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function wireShellAuth() {
+  const balanceEl = document.querySelector('.balance-amount');
+  const avatarEl = document.querySelector('.top-user .avatar');
+  const nameEl = document.querySelector('.top-user span');
+  const logoutLink = document.querySelector('.user-dropdown a[href="login.html"]');
+
+  document.querySelectorAll('.nav-item').forEach((link) => {
+    const text = link.textContent.trim();
+    if (text === 'Telegram Seller' || text === 'Support') {
+      link.href = 'https://t.me/stackvault_bot';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+  });
+
+  const contactBtn = document.querySelector('.contact-btn');
+  if (contactBtn) {
+    contactBtn.href = 'https://t.me/stackvault_bot';
+    contactBtn.target = '_blank';
+    contactBtn.rel = 'noopener noreferrer';
+  }
+
+  if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('sv_token');
+      localStorage.removeItem('sv_user');
+      window.location.href = 'login.html';
+    });
+  }
+
+  if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
+  if (nameEl) nameEl.textContent = user.username || 'User';
+  if (balanceEl) {
+    const cents = typeof user.balance === 'number' ? user.balance : 0;
+    balanceEl.innerHTML = formatBalance(cents) + ' <span>USD</span>';
+  }
+}
+
+async function downloadOrder(orderId) {
+  try {
+    const response = await fetch(`${API_BASE}/api/orders/${orderId}/download`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem('sv_token');
+      localStorage.removeItem('sv_user');
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!response.ok) {
+      alert('Download failed. Please try again.');
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cd = response.headers.get('Content-Disposition');
+    a.download = (cd && cd.split('filename=')[1]) ? cd.split('filename=')[1].replace(/"/g, '') : `order_${orderId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('Server unavailable, try again');
+  }
+}
+
+function showKeysModal(order) {
+  const existing = document.getElementById('sv-keys-modal');
+  if (existing) existing.remove();
+
+  const keys = order.keys || [];
+  const overlay = document.createElement('div');
+  overlay.id = 'sv-keys-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const keysHtml = keys.map((k) =>
+    `<div style="display:flex;gap:8px;margin-bottom:8px;"><input readonly value="${String(k).replace(/"/g, '&quot;')}" style="flex:1;background:#161922;border:1px solid #22252e;border-radius:8px;padding:10px;color:#f4f4f6;font-size:13px;"><button type="button" data-copy="${String(k).replace(/"/g, '&quot;')}" style="background:#6d5ef8;color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;">Copy</button></div>`
+  ).join('');
+
+  overlay.innerHTML = `
+    <div style="background:#111319;border:1px solid #22252e;border-radius:14px;padding:24px;max-width:480px;width:100%;">
+      <h3 style="margin:0 0 4px;font-size:18px;">Order #${order.id}</h3>
+      <p style="color:#9a9ca6;font-size:13px;margin:0 0 16px;">${order.productName || ''} · Qty ${order.quantity || 1}</p>
+      ${keysHtml || '<p style="color:#9a9ca6;">No keys available for this order.</p>'}
+      <button type="button" id="sv-keys-close" style="width:100%;margin-top:12px;background:#6d5ef8;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:600;cursor:pointer;">Close</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  });
+  overlay.querySelector('#sv-keys-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
+function updateStats(orders) {
+  const nums = document.querySelectorAll('.stat-num');
+  if (nums.length < 4) return;
+  const completed = orders.filter((o) => o.status === 'completed').length;
+  const processing = orders.filter((o) => o.status === 'processing' || o.status === 'pending').length;
+  const cancelled = orders.filter((o) => o.status === 'cancelled').length;
+  nums[0].textContent = orders.length;
+  nums[1].textContent = completed;
+  nums[2].textContent = processing;
+  nums[3].textContent = cancelled;
+}
+
+function filteredOrders() {
+  let list = allOrders.slice();
+  if (activeFilter !== 'all') {
+    list = list.filter((o) => {
+      if (activeFilter === 'processing') return o.status === 'processing' || o.status === 'pending';
+      return o.status === activeFilter;
+    });
+  }
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter((o) =>
+      String(o.id).includes(q) ||
+      (o.productName || '').toLowerCase().includes(q) ||
+      (o.apiOrderId || '').toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+function renderOrders() {
+  const tbody = document.querySelector('.table-card tbody');
+  if (!tbody) return;
+
+  const list = filteredOrders();
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-dim);">No orders match your filters.</td></tr>';
+    return;
+  }
+
+  const eyeIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const dlIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>';
+  const copyIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+
+  tbody.innerHTML = list.map((order) => {
+    const status = order.status || 'completed';
+    const statusLabel = capitalize(status);
+    return `
+      <tr>
+        <td>
+          <div class="prod-cell">
+            <div class="prod-icon" style="background:${getColor(order.productName)};">${getInitial(order.productName)}</div>
+            <div>
+              <div class="prod-name">${(order.productName || '').replace(/</g, '&lt;')}</div>
+              <div class="prod-cat">Qty: ${order.quantity || 1}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="order-id">#${order.id} ${copyIcon}</div>
+        </td>
+        <td class="date-cell">
+          <div class="d">${formatDate(order.createdAt)}</div>
+          <div class="t">${formatTime(order.createdAt)}</div>
+        </td>
+        <td>
+          <span class="status-pill ${status}"><span class="dot"></span>${statusLabel}</span>
+        </td>
+        <td class="price-cell">
+          <div class="amt">$${order.totalPaid}</div>
+          <div class="unit">USDT</div>
+        </td>
+        <td>
+          <div class="actions-cell">
+            <button class="view-btn" data-order-id="${order.id}">${eyeIcon}View Keys</button>
+            <button class="dl-btn" data-order-id="${order.id}" title="Download">${dlIcon}</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('.view-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const order = allOrders.find((o) => String(o.id) === String(btn.dataset.orderId));
+      if (order) showKeysModal(order);
+    });
+  });
+
+  tbody.querySelectorAll('.dl-btn').forEach((btn) => {
+    btn.addEventListener('click', () => downloadOrder(btn.dataset.orderId));
+  });
+
+  tbody.querySelectorAll('.order-id').forEach((el) => {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => {
+      const id = el.textContent.trim();
+      navigator.clipboard.writeText(id).catch(() => {});
+    });
+  });
+}
+
+async function loadOrders() {
+  try {
+    const [ordersData, balanceData] = await Promise.all([
+      apiFetch('/api/orders'),
+      apiFetch('/api/balance')
+    ]);
+
+    if (balanceData) {
+      const balanceEl = document.querySelector('.balance-amount');
+      if (balanceEl) balanceEl.innerHTML = '$' + balanceData.balance + ' <span>USD</span>';
+    }
+
+    allOrders = (ordersData && ordersData.orders) || [];
+
+    if (allOrders.length === 0) {
+      window.location.href = 'no_orders.html';
+      return;
+    }
+
+    updateStats(allOrders);
+    renderOrders();
+
+    const pagination = document.querySelector('.pagination-row');
+    if (pagination) pagination.style.display = 'none';
+  } catch (err) {
+    const tbody = document.querySelector('.table-card tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-dim);">Server unavailable, try again.</td></tr>';
+  }
+}
+
+document.querySelectorAll('.filter-chip').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    if (chip.classList.contains('all')) activeFilter = 'all';
+    else if (chip.classList.contains('completed')) activeFilter = 'completed';
+    else if (chip.classList.contains('processing')) activeFilter = 'processing';
+    else if (chip.classList.contains('cancelled')) activeFilter = 'cancelled';
+    else return;
+    renderOrders();
+  });
+});
+
+const searchBox = document.querySelector('.toolbar .search-box input');
+if (searchBox) {
+  searchBox.addEventListener('input', () => {
+    searchQuery = searchBox.value.trim();
+    renderOrders();
+  });
+}
+
+wireShellAuth();
+loadOrders();
+</script>
+
 </body>
 
 </html>

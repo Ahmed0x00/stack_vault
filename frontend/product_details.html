@@ -781,6 +781,279 @@
 })();
 </script>
 
+<script>
+const API_BASE = 'https://stackvault-api.stackvault.xyz';
+
+function getToken() {
+  return localStorage.getItem('sv_token');
+}
+
+function getUser() {
+  return JSON.parse(localStorage.getItem('sv_user') || 'null');
+}
+
+async function apiFetch(endpoint, options = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers: { ...headers, ...options.headers } });
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    throw { status: res.status, error: 'Server unavailable, try again' };
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    localStorage.removeItem('sv_token');
+    localStorage.removeItem('sv_user');
+    window.location.href = 'login.html';
+    return null;
+  }
+
+  if (!res.ok) throw { status: res.status, ...data };
+  return data;
+}
+
+function formatBalance(cents) {
+  return '$' + (cents / 100).toFixed(2);
+}
+
+let currentProduct = null;
+
+function wireShellAuth() {
+  const token = getToken();
+  const user = getUser();
+  const balanceEl = document.querySelector('.balance-amount');
+  const avatarEl = document.querySelector('.top-user .avatar');
+  const nameEl = document.querySelector('.top-user span');
+  const topUser = document.querySelector('.top-user');
+  const logoutLink = document.querySelector('.user-dropdown a[href="login.html"]');
+
+  document.querySelectorAll('.nav-item').forEach((link) => {
+    const text = link.textContent.trim();
+    if (text === 'Telegram Seller' || text === 'Support') {
+      link.href = 'https://t.me/stackvault_bot';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+    }
+  });
+
+  const contactBtn = document.querySelector('.contact-btn');
+  if (contactBtn) {
+    contactBtn.href = 'https://t.me/stackvault_bot';
+    contactBtn.target = '_blank';
+    contactBtn.rel = 'noopener noreferrer';
+  }
+
+  const supportNote = document.querySelector('.support-note a');
+  if (supportNote) {
+    supportNote.href = 'https://t.me/stackvault_bot';
+    supportNote.target = '_blank';
+  }
+
+  if (logoutLink) {
+    logoutLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('sv_token');
+      localStorage.removeItem('sv_user');
+      window.location.href = 'login.html';
+    });
+  }
+
+  if (token && user) {
+    if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
+    if (nameEl) nameEl.textContent = user.username || 'User';
+    if (topUser) topUser.href = 'my_account.html';
+    if (balanceEl) {
+      const cents = typeof user.balance === 'number' ? user.balance : 0;
+      balanceEl.innerHTML = formatBalance(cents) + ' <span>USD</span>';
+    }
+    apiFetch('/api/auth/me').then((data) => {
+      if (!data || !data.user) return;
+      localStorage.setItem('sv_user', JSON.stringify(data.user));
+      if (balanceEl) balanceEl.innerHTML = formatBalance(data.user.balance) + ' <span>USD</span>';
+      if (avatarEl) avatarEl.textContent = (data.user.username || 'U').charAt(0).toUpperCase();
+      if (nameEl) nameEl.textContent = data.user.username || 'User';
+    }).catch(() => {});
+  } else {
+    if (balanceEl) balanceEl.innerHTML = '<a href="login.html" style="color:inherit;text-decoration:none;">Log In</a>';
+    if (avatarEl) avatarEl.textContent = '?';
+    if (nameEl) nameEl.textContent = 'Guest';
+    if (topUser) topUser.href = 'login.html';
+    const balanceBox = document.querySelector('.balance-box');
+    if (balanceBox) balanceBox.href = 'login.html';
+  }
+}
+
+function updateBalanceDisplay(dollars) {
+  const balanceEl = document.querySelector('.balance-amount');
+  if (!balanceEl) return;
+  const val = typeof dollars === 'string' ? dollars : Number(dollars).toFixed(2);
+  balanceEl.innerHTML = '$' + val + ' <span>USD</span>';
+}
+
+function showKeysModal(keys, message) {
+  const existing = document.getElementById('sv-keys-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'sv-keys-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  const keysHtml = (keys || []).map((k) =>
+    `<div style="display:flex;gap:8px;margin-bottom:8px;"><input readonly value="${String(k).replace(/"/g, '&quot;')}" style="flex:1;background:#161922;border:1px solid #22252e;border-radius:8px;padding:10px;color:#f4f4f6;font-size:13px;"><button type="button" data-copy="${String(k).replace(/"/g, '&quot;')}" style="background:#6d5ef8;color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;">Copy</button></div>`
+  ).join('');
+
+  overlay.innerHTML = `
+    <div style="background:#111319;border:1px solid #22252e;border-radius:14px;padding:24px;max-width:480px;width:100%;">
+      <h3 style="margin:0 0 8px;font-size:18px;">${message || 'Order completed!'}</h3>
+      <p style="color:#9a9ca6;font-size:13px;margin:0 0 16px;">Your keys are ready. Copy and store them safely.</p>
+      ${keysHtml || '<p style="color:#9a9ca6;">No keys returned.</p>'}
+      <button type="button" id="sv-keys-close" style="width:100%;margin-top:12px;background:#6d5ef8;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:600;cursor:pointer;">Done</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelectorAll('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  });
+  overlay.querySelector('#sv-keys-close').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
+async function loadProduct() {
+  const id = new URLSearchParams(window.location.search).get('id');
+  if (!id) {
+    window.location.href = 'products.html';
+    return;
+  }
+
+  try {
+    const data = await apiFetch(`/api/products/${encodeURIComponent(id)}`);
+    if (!data || !data.product) {
+      window.location.href = 'products.html';
+      return;
+    }
+    currentProduct = data.product;
+    const p = currentProduct;
+
+    document.title = `${p.name} - StackVault`;
+
+    const titleEl = document.querySelector('.product-title');
+    if (titleEl) titleEl.textContent = p.name;
+
+    const badgeSoft = document.querySelector('.badge-soft');
+    if (badgeSoft) badgeSoft.textContent = p.categoryName || p.category || '';
+
+    const badgeStock = document.querySelector('.badge-stock');
+    if (badgeStock) badgeStock.textContent = p.inStock ? 'In Stock' : 'Out of Stock';
+
+    document.querySelectorAll('.product-desc').forEach((el) => {
+      el.textContent = p.description || '';
+    });
+
+    const priceEl = document.querySelector('.price-value');
+    if (priceEl) priceEl.textContent = '$' + (typeof p.price === 'number' ? p.price.toFixed(2) : p.price);
+
+    const breadcrumbCurrent = document.querySelector('.breadcrumb-custom .current');
+    if (breadcrumbCurrent) breadcrumbCurrent.textContent = p.name;
+
+    const breadcrumbLinks = document.querySelectorAll('.breadcrumb-custom a');
+    if (breadcrumbLinks.length >= 3) {
+      breadcrumbLinks[2].textContent = p.categoryName || p.category || 'Category';
+      breadcrumbLinks[2].href = 'products.html';
+    }
+
+    const sidebarTitle = document.querySelector('.col-xl-4 .panel .fw-bold');
+    if (sidebarTitle) sidebarTitle.textContent = p.name;
+
+    const tagsWrap = document.querySelector('.d-flex.flex-wrap.gap-2');
+    if (tagsWrap && tagsWrap.querySelector('.tag-chip')) {
+      const words = (p.name || '').split(/\s+/).filter(Boolean).slice(0, 4);
+      tagsWrap.innerHTML = words.map((w) => `<span class="tag-chip">${w}</span>`).join('') ||
+        `<span class="tag-chip">${p.categoryName || 'Digital'}</span>`;
+    }
+  } catch (err) {
+    if (err && err.status === 404) {
+      window.location.href = 'products.html';
+      return;
+    }
+    alert((err && err.error) || 'Server unavailable, try again');
+  }
+}
+
+const buyBtn = document.querySelector('.btn-buy');
+if (buyBtn) {
+  buyBtn.addEventListener('click', async () => {
+    if (!getToken() || !getUser()) {
+      window.location.href = 'login.html';
+      return;
+    }
+    if (!currentProduct) {
+      alert('Product still loading, please wait.');
+      return;
+    }
+    if (!currentProduct.inStock) {
+      alert('This product is currently out of stock.');
+      return;
+    }
+
+    const total = (currentProduct.price * qty).toFixed(2);
+    if (!confirm(`Buy ${qty}x ${currentProduct.name} for $${total}?`)) return;
+
+    const originalHTML = buyBtn.innerHTML;
+    buyBtn.disabled = true;
+    buyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+
+    try {
+      const data = await apiFetch('/api/orders', {
+        method: 'POST',
+        body: JSON.stringify({ productId: String(currentProduct.id), quantity: qty })
+      });
+
+      if (data.newBalance != null) {
+        updateBalanceDisplay(data.newBalance);
+        const user = getUser() || {};
+        user.balance = Math.round(parseFloat(data.newBalance) * 100);
+        localStorage.setItem('sv_user', JSON.stringify(user));
+      }
+
+      showKeysModal(data.order && data.order.keys, data.message || 'Order completed successfully!');
+    } catch (err) {
+      if (err && err.status === 402) {
+        const needed = err.needed || '?';
+        if (confirm(`Insufficient balance. You need $${needed} more. Top up now?`)) {
+          window.location.href = 'top_up_balance.html';
+        }
+      } else {
+        alert((err && err.error) || 'Server unavailable, try again');
+      }
+    } finally {
+      buyBtn.disabled = false;
+      buyBtn.innerHTML = originalHTML;
+    }
+  });
+}
+
+const searchInput = document.querySelector('.topbar-search input');
+if (searchInput) {
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const q = searchInput.value.trim();
+      window.location.href = q ? `products.html?search=${encodeURIComponent(q)}` : 'products.html';
+    }
+  });
+}
+
+wireShellAuth();
+loadProduct();
+</script>
+
 </body>
 
 </html>
