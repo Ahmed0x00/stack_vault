@@ -14,10 +14,12 @@ router.get('/', authenticateToken, async (req, res) => {
     
     if (user && !user.deposit_address) {
       try {
-        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-        const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
-        user.deposit_address = getDepositAddress(identifier, masterSecret);
-        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+        const masterSecret = process.env.DEPOSIT_MASTER_SECRET;
+        if (masterSecret) {
+          const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+          user.deposit_address = getDepositAddress(identifier, masterSecret);
+          await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+        }
       } catch (e) {}
     }
 
@@ -56,14 +58,16 @@ router.get('/deposit-info', authenticateToken, async (req, res) => {
     
     if (user && !user.deposit_address) {
       try {
-        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-        const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
-        user.deposit_address = getDepositAddress(identifier, masterSecret);
-        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+        const masterSecret = process.env.DEPOSIT_MASTER_SECRET;
+        if (masterSecret) {
+          const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+          user.deposit_address = getDepositAddress(identifier, masterSecret);
+          await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+        }
       } catch (e) {}
     }
 
-    const binancePayId = process.env.BINANCE_PAY_ID || '1120547012';
+    const binancePayId = process.env.BINANCE_PAY_ID || '';
 
     res.json({
       usdt: {

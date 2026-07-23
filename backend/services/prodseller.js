@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const BASE_URL = 'http://51.77.244.194/v1';
-const DEFAULT_KEY = 'psk_5893e0e31af0817550eb1e09b561f8be0256d7d0e57b8c8b';
+
 
 class ProdSellerService {
   constructor() {
@@ -12,8 +12,11 @@ class ProdSellerService {
   }
 
   getHeaders(idempotencyKey = null) {
-    const rawKey = process.env.PRODSELLER_API_KEY || DEFAULT_KEY;
-    const cleanKey = rawKey.replace(/^["']|["']$/g, '').trim();
+    const rawKey = process.env.PRODSELLER_API_KEY;
+    if (!rawKey) {
+      console.error('WARNING: PRODSELLER_API_KEY is not set in environment');
+    }
+    const cleanKey = rawKey ? rawKey.replace(/^["']|["']$/g, '').trim() : '';
     const headers = {
       'X-API-Key': cleanKey,
     };

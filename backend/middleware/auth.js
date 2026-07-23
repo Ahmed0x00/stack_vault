@@ -1,7 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { queryOne } = require('../config/db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'stackvault_super_secret_jwt_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set. Refusing to start.');
+}
+
 
 async function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];

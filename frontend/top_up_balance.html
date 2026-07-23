@@ -791,9 +791,12 @@ async function apiFetch(endpoint, options = {}) {
   if (res.status === 401 || res.status === 403) {
     localStorage.removeItem('sv_token');
     localStorage.removeItem('sv_user');
-    window.location.href = 'login.html';
+    localStorage.removeItem('sv_is_guest');
+    _currentToken = null;
+    _currentUser = null;
     return null;
   }
+
 
   if (!res.ok) throw { status: res.status, ...data };
   return data;
@@ -803,10 +806,34 @@ function formatBalance(cents) {
   return '$' + (cents / 100).toFixed(2);
 }
 
-const token = getToken();
-const user = getUser();
-if (!token || !user) {
-  window.location.href = 'login.html';
+let _currentToken = getToken();
+let _currentUser = getUser();
+
+async function ensureSession() {
+  // If already have a valid session (registered or guest), use it
+  if (_currentToken && _currentUser) return true;
+
+  // Auto-create a guest session so guests can deposit/buy without registering
+  try {
+    const guestRes = await fetch(`${API_BASE}/auth/guest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!guestRes.ok) {
+      window.location.href = 'login.html';
+      return false;
+    }
+    const guestData = await guestRes.json();
+    localStorage.setItem('sv_token', guestData.token);
+    localStorage.setItem('sv_user', JSON.stringify(guestData.user));
+    localStorage.setItem('sv_is_guest', '1');
+    _currentToken = guestData.token;
+    _currentUser = guestData.user;
+    return true;
+  } catch (e) {
+    window.location.href = 'login.html';
+    return false;
+  }
 }
 
 function wireShellAuth() {
@@ -840,10 +867,10 @@ function wireShellAuth() {
     });
   });
 
-  if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
-  if (nameEl) nameEl.textContent = user.username || 'User';
+  if (avatarEl) avatarEl.textContent = (_currentUser ? (_currentUser.username || 'U') : 'G').charAt(0).toUpperCase();
+  if (nameEl) nameEl.textContent = _currentUser ? (_currentUser.username || 'User') : 'Guest';
   if (balanceEl) {
-    const cents = typeof user.balance === 'number' ? user.balance : 0;
+    const cents = _currentUser && typeof _currentUser.balance === 'number' ? _currentUser.balance : 0;
     balanceEl.innerHTML = formatBalance(cents) + ' <span>USD</span>';
   }
 }
@@ -936,11 +963,16 @@ function startPolling() {
   pollInterval = setInterval(loadBalance, 10000);
 }
 
-wireShellAuth();
-loadDepositInfo();
-loadBalance().then(() => {
+async function init() {
+  const ok = await ensureSession();
+  if (!ok) return;
+  wireShellAuth();
+  await loadDepositInfo();
+  await loadBalance();
   startPolling();
-});
+}
+
+init();
 </script>
 
 </body>

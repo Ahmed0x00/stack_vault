@@ -1,6 +1,7 @@
 /**
  * buy_modal.js
- * Handles the popup purchasing flow directly from shop/home pages
+ * Handles the popup purchasing flow directly from shop/home pages.
+ * Supports both authenticated users and guests (auto-creates a guest session).
  */
 
 async function openBuyModal(productId) {
@@ -15,7 +16,7 @@ async function openBuyModal(productId) {
   document.body.appendChild(overlay);
 
   try {
-    // Fetch product details
+    // Fetch product details (no auth required)
     const res = await apiFetch(`/api/products/${encodeURIComponent(productId)}`);
     if (!res || !res.product) throw new Error('Product not found');
     const p = res.product;
@@ -56,6 +57,11 @@ async function openBuyModal(productId) {
         <button id="confirm-buy-btn" ${!p.inStock ? 'disabled' : ''} style="width:100%;background:${p.inStock ? '#6d5ef8' : '#2d323f'};color:${p.inStock ? '#fff' : '#9a9ca6'};border:none;border-radius:12px;padding:16px;font-size:16px;font-weight:600;cursor:${p.inStock ? 'pointer' : 'not-allowed'};transition:opacity 0.2s;">
           ${p.inStock ? 'Confirm Purchase' : 'Out of Stock'}
         </button>
+
+        <div id="buy-guest-note" style="display:none;margin-top:12px;padding:12px;background:#161922;border:1px solid #22252e;border-radius:10px;font-size:12.5px;color:#9a9ca6;text-align:center;">
+          You're purchasing as a <strong style="color:#f4f4f6;">Guest</strong>. 
+          <a href="register.html" style="color:#6d5ef8;font-weight:600;">Create an account</a> to save your orders and balance.
+        </div>
       </div>
     `;
 
@@ -77,8 +83,13 @@ async function openBuyModal(productId) {
     const qtyInput = overlay.querySelector('#qty-input');
     const totalEl = overlay.querySelector('#buy-total');
     const confirmBtn = overlay.querySelector('#confirm-buy-btn');
+    const guestNote = overlay.querySelector('#buy-guest-note');
 
     const unitPrice = typeof p.price === 'number' ? p.price : parseFloat(p.price);
+
+    // Show guest note if not logged in
+    const isLoggedIn = !!(getToken() && getUser());
+    if (!isLoggedIn && guestNote) guestNote.style.display = 'block';
 
     function updateTotal() {
       let qty = parseInt(qtyInput.value) || 1;
@@ -111,42 +122,84 @@ async function openBuyModal(productId) {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 
     confirmBtn.addEventListener('click', async () => {
-      if (!getToken() || !getUser()) {
-        window.location.href = 'login.html';
-        return;
-      }
-      
       const qty = parseInt(qtyInput.value) || 1;
       confirmBtn.disabled = true;
       confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
 
       try {
-        const buyRes = await apiFetch('/api/orders/buy', {
-          method: 'POST',
-          body: JSON.stringify({ productId: p.id, quantity: qty })
-        });
-        
-        if (buyRes && buyRes.order) {
-          svToast('Purchase successful!', 'success');
-          // Update local balance
-          apiFetch('/api/auth/me').then((data) => {
-            if (data && data.user) {
-              localStorage.setItem('sv_user', JSON.stringify(data.user));
-              // Update balance UI if element exists
-              const balEl = document.getElementById('shell-balance');
-              if (balEl) balEl.innerHTML = formatBalance(data.user.balance) + ' <span>USD</span>';
-            }
+        // Ensure the user has a token (create guest session if needed)
+        let token = getToken();
+        if (!token) {
+          // Auto-create a guest session — no login required
+          const guestRes = await fetch(`${API_BASE}/auth/guest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
           });
+          if (!guestRes.ok) throw new Error('Failed to create guest session');
+          const guestData = await guestRes.json();
+          localStorage.setItem('sv_token', guestData.token);
+          localStorage.setItem('sv_user', JSON.stringify(guestData.user));
+          localStorage.setItem('sv_is_guest', '1');
+          token = guestData.token;
+        }
+
+        // Place the order — correct endpoint: POST /api/orders
+        const buyRes = await fetch(`${API_BASE}/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ productId: p.id, quantity: qty }),
+        });
+
+        const buyData = await buyRes.json();
+
+        if (!buyRes.ok) {
+          // Handle insufficient balance — guide guest to deposit
+          if (buyRes.status === 402) {
+            throw {
+              error: `Insufficient balance. You need $${buyData.needed} more. ` +
+                `<a href="top_up_balance.html" style="color:#6d5ef8;font-weight:600;">Top up here</a>`,
+              isHtml: true,
+            };
+          }
+          throw { error: buyData.error || 'Purchase failed' };
+        }
+
+        if (buyData && buyData.order) {
+          svToast('Purchase successful! Redirecting to your orders...', 'success');
+          // Update local balance display
+          const freshUser = await fetch(`${API_BASE}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('sv_token')}` },
+          }).then(r => r.ok ? r.json() : null).catch(() => null);
+
+          if (freshUser && freshUser.user) {
+            localStorage.setItem('sv_user', JSON.stringify(freshUser.user));
+            const balEl = document.getElementById('shell-balance');
+            if (balEl) balEl.innerHTML = '$' + (freshUser.user.balance / 100).toFixed(2) + ' <span>USD</span>';
+          }
           overlay.remove();
-          // Optionally route to my_orders
           setTimeout(() => { window.location.href = 'my_orders.html'; }, 1500);
         } else {
           throw new Error('Purchase failed');
         }
       } catch (err) {
         confirmBtn.disabled = false;
-        confirmBtn.innerHTML = 'Confirm Purchase';
-        svToast((err && err.error) || 'Purchase failed', 'error');
+        confirmBtn.innerHTML = p.inStock ? 'Confirm Purchase' : 'Out of Stock';
+        const msg = (err && err.error) || 'Purchase failed. Please try again.';
+        if (err && err.isHtml) {
+          // Show the HTML message (with deposit link)
+          const errDiv = document.getElementById('buy-modal-err');
+          if (errDiv) {
+            errDiv.innerHTML = msg;
+            errDiv.style.display = 'block';
+          } else {
+            svToast('Insufficient balance — please top up your account.', 'error');
+          }
+        } else {
+          svToast(msg, 'error');
+        }
       }
     });
 

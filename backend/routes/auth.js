@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    console.log("INSERTING TG_ID:", tgId); const result = await query(
+    const result = await query(
       'INSERT INTO users (email, username, password_hash, balance) VALUES (?, ?, ?, 0)',
       [email.toLowerCase().trim(), username.trim(), passwordHash]
     );
@@ -36,11 +36,13 @@ router.post('/register', async (req, res) => {
     // Derive deterministic BSC deposit address
     let depositAddress = null;
     try {
-      const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-      // New users from email don't have telegram_id yet, use uid_
-      const identifier = `uid_${userId}`;
-      depositAddress = getDepositAddress(identifier, masterSecret);
-      await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
+      const masterSecret = process.env.DEPOSIT_MASTER_SECRET;
+      if (masterSecret) {
+        // New users from email don't have telegram_id yet, use uid_
+        const identifier = `uid_${userId}`;
+        depositAddress = getDepositAddress(identifier, masterSecret);
+        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
+      }
     } catch (err) {
       console.error('Error generating deposit address:', err);
     }
@@ -92,10 +94,12 @@ router.post('/login', async (req, res) => {
     // Ensure deposit address is generated if missing
     if (!user.deposit_address) {
       try {
-        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-        const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
-        user.deposit_address = getDepositAddress(identifier, masterSecret);
-        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+        const masterSecret = process.env.DEPOSIT_MASTER_SECRET;
+        if (masterSecret) {
+          const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+          user.deposit_address = getDepositAddress(identifier, masterSecret);
+          await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+        }
       } catch (e) {}
     }
 
@@ -136,10 +140,10 @@ router.get('/me', authenticateToken, (req, res) => {
 const crypto = require('crypto');
 const axios = require('axios');
 
-const TG_CLIENT_ID = process.env.TELEGRAM_CLIENT_ID || '8725563030';
+const TG_CLIENT_ID = process.env.TELEGRAM_CLIENT_ID || '';
 const TG_CLIENT_SECRET = process.env.TELEGRAM_CLIENT_SECRET || '';
 const TG_REDIRECT_URI = 'https://decohomz.com/sv-api/auth/telegram-callback';
-const FRONTEND_URL = 'https://stackvault.shop';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://stackvault.shop';
 
 // GET /api/auth/telegram-redirect
 // Initiates the Telegram OIDC login flow
@@ -242,26 +246,30 @@ router.get('/telegram-callback', async (req, res) => {
       const randomPassword = crypto.randomBytes(16).toString('hex');
       const passwordHash = await bcrypt.hash(randomPassword, 10);
 
-      console.log("INSERTING TG_ID:", tgId); const result = await query(
+      const result = await query(
         'INSERT INTO users (email, username, password_hash, telegram_id, balance) VALUES (?, ?, ?, ?, 0)',
         [email, tgUsername, passwordHash, tgId]
       );
       const userId = result.insertId;
 
       try {
-        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-        const depositAddress = getDepositAddress(tgId.toString(), masterSecret);
-        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
+        const masterSecret = process.env.DEPOSIT_MASTER_SECRET;
+        if (masterSecret) {
+          const depositAddress = getDepositAddress(tgId.toString(), masterSecret);
+          await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
+        }
       } catch (err) {}
 
       user = await queryOne('SELECT * FROM users WHERE id = ?', [userId]);
     } else {
       if (!user.deposit_address) {
         try {
-          const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-          const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
-          user.deposit_address = getDepositAddress(identifier, masterSecret);
-          await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+          const masterSecret = process.env.DEPOSIT_MASTER_SECRET;
+          if (masterSecret) {
+            const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+            user.deposit_address = getDepositAddress(identifier, masterSecret);
+            await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+          }
         } catch (e) {}
       }
     }
@@ -310,6 +318,53 @@ router.post('/link-telegram', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Link Telegram error:', error);
     res.status(500).json({ error: 'Failed to link Telegram account' });
+  }
+});
+
+// POST /api/auth/guest — Create a temporary guest session
+router.post('/guest', async (req, res) => {
+  try {
+    const guestId = crypto.randomBytes(12).toString('hex');
+    const email = `guest_${guestId}@guest.stackvault`;
+    const username = `Guest_${guestId.slice(0, 8)}`;
+    const randomPassword = crypto.randomBytes(16).toString('hex');
+    const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+    const result = await query(
+      "INSERT INTO users (email, username, password_hash, balance, role) VALUES (?, ?, ?, 0, 'guest')",
+      [email, username, passwordHash]
+    );
+    const userId = result.insertId;
+
+    // Generate deposit address for the guest
+    let depositAddress = null;
+    try {
+      const masterSecret = process.env.DEPOSIT_MASTER_SECRET;
+      if (masterSecret) {
+        depositAddress = getDepositAddress(`guest_${userId}`, masterSecret);
+        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
+      }
+    } catch (err) {
+      console.error('Error generating guest deposit address:', err);
+    }
+
+    const user = await queryOne('SELECT id, email, username, balance, deposit_address, role FROM users WHERE id = ?', [userId]);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      message: 'Guest session created',
+      token,
+      user,
+      isGuest: true,
+    });
+  } catch (error) {
+    console.error('Guest session error:', error);
+    res.status(500).json({ error: 'Failed to create guest session' });
   }
 });
 
