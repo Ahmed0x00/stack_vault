@@ -874,10 +874,29 @@ async function loadDepositInfo() {
   }
 }
 
+let initialBalance = null;
+let pollInterval = null;
+
 async function loadBalance() {
   try {
     const data = await apiFetch('/api/balance');
     if (!data) return;
+    
+    // First load
+    if (initialBalance === null) {
+      initialBalance = data.balanceCents != null ? data.balanceCents : Math.round(parseFloat(data.balance) * 100);
+    } else {
+      // Check for deposit
+      const currentBalance = data.balanceCents != null ? data.balanceCents : Math.round(parseFloat(data.balance) * 100);
+      if (currentBalance > initialBalance) {
+        // Balance increased! Deposit received!
+        const difference = currentBalance - initialBalance;
+        showDepositSuccess(difference, currentBalance);
+        initialBalance = currentBalance;
+        if (pollInterval) clearInterval(pollInterval);
+      }
+    }
+
     const balanceEl = document.querySelector('.balance-amount');
     if (balanceEl) {
       balanceEl.innerHTML = '$' + data.balance + ' <span>USD</span>';
@@ -891,9 +910,37 @@ async function loadBalance() {
   }
 }
 
+function showDepositSuccess(amountCents, newBalanceCents) {
+  const amountStr = '$' + (amountCents / 100).toFixed(2);
+  const newBalanceStr = '$' + (newBalanceCents / 100).toFixed(2);
+  
+  const waitSection = document.querySelector('.wait-section');
+  if (waitSection) {
+    waitSection.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" style="width: 48px; height: 48px; margin-bottom: 16px;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <h3 style="color: #22c55e; margin: 0 0 8px 0;">Deposit Received! 🎉</h3>
+        <p style="color: #94a3b8; margin: 0; text-align: center;">
+          Amount: <strong>${amountStr}</strong><br>
+          New Balance: <strong>${newBalanceStr}</strong>
+        </p>
+      </div>
+    `;
+  }
+}
+
+function startPolling() {
+  // Poll every 10 seconds
+  pollInterval = setInterval(loadBalance, 10000);
+}
+
 wireShellAuth();
 loadDepositInfo();
-loadBalance();
+loadBalance().then(() => {
+  startPolling();
+});
 </script>
 
 </body>
