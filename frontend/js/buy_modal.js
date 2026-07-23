@@ -210,26 +210,43 @@ async function openBuyModal(productId) {
             </div>
           `;
           
-          document.getElementById('download-keys-btn').addEventListener('click', () => {
-            const keysList = o.keys || [];
-            let fileContent = 'StackVault — Official Order Receipt\\n';
-            fileContent += '=============================================\\n';
-            fileContent += 'Product  : ' + o.productName + '\\n';
-            fileContent += 'Quantity : ' + o.quantity + '\\n';
-            fileContent += 'Order ID : #' + o.id + '\\n';
-            fileContent += 'Total    : $' + o.totalCharged + ' USD\\n';
-            fileContent += 'Date     : ' + new Date(o.date).toLocaleString() + '\\n';
-            fileContent += '=============================================\\n\\n';
-            fileContent += 'Your License Keys / Credentials:\\n';
-            fileContent += '---------------------------------------------\\n';
-            keysList.forEach((k, i) => { fileContent += (i + 1) + '. ' + k + '\\n'; });
-            fileContent += '---------------------------------------------\\n\\nThank you for choosing StackVault!\\nWebsite: https://stackvault.xyz\\nSupport: https://t.me/stackvault_bot\\n';
-
-            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'StackVault_' + (o.productName || 'Product').replace(/[^a-zA-Z0-9_-]/g, '_') + '_#' + o.id + '.txt';
-            a.click();
+          document.getElementById('download-keys-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('download-keys-btn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Downloading...';
+            btn.disabled = true;
+            
+            try {
+              const response = await fetch(`${API_BASE}/orders/${o.id}/download`, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('sv_token')}` }
+              });
+              
+              if (!response.ok) {
+                svToast('Download failed. Please try again.', 'error');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                return;
+              }
+              
+              const blob = await response.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.style.display = 'none';
+              a.href = url;
+              const cd = response.headers.get('Content-Disposition');
+              a.download = (cd && cd.split('filename=')[1]) ? cd.split('filename=')[1].replace(/"/g, '') : `order_${o.id}.txt`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              
+              btn.innerHTML = originalHtml;
+              btn.disabled = false;
+            } catch (err) {
+              svToast('Server unavailable, try again', 'error');
+              btn.innerHTML = originalHtml;
+              btn.disabled = false;
+            }
           });
         } else {
           throw new Error('Purchase failed');
