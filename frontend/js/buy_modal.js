@@ -168,7 +168,8 @@ async function openBuyModal(productId) {
         }
 
         if (buyData && buyData.order) {
-          svToast('Purchase successful! Redirecting to your orders...', 'success');
+          const o = buyData.order;
+          svToast('Purchase successful!', 'success');
           // Update local balance display
           const freshUser = await fetch(`${API_BASE}/auth/me`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('sv_token')}` },
@@ -179,8 +180,57 @@ async function openBuyModal(productId) {
             const balEl = document.getElementById('shell-balance');
             if (balEl) balEl.innerHTML = '$' + (freshUser.user.balance / 100).toFixed(2) + ' <span>USD</span>';
           }
-          overlay.remove();
-          setTimeout(() => { window.location.href = 'my_orders.html'; }, 1500);
+          
+          const keysJoined = (o.keys || []).join('\n').replace(/</g, '&lt;');
+          
+          overlay.innerHTML = `
+            <div style="background:#111319;border:1px solid #22252e;border-radius:16px;padding:24px;max-width:500px;width:100%;box-sizing:border-box;position:relative;animation: modalFadeIn 0.2s ease-out;margin:0 16px;">
+              <button onclick="document.getElementById('sv-buy-modal').remove()" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#9a9ca6;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
+              
+              <div style="text-align:center;margin-bottom:24px;">
+                <div style="width:56px;height:56px;border-radius:50%;background:rgba(16,185,129,0.1);color:#10b981;font-size:28px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                  <i class="fa-solid fa-check"></i>
+                </div>
+                <h2 style="margin:0 0 8px;font-size:20px;color:#fff;">Purchase Successful!</h2>
+                <div style="color:#9a9ca6;font-size:14px;">Order #${o.id} &bull; ${o.productName} (x${o.quantity})</div>
+              </div>
+              
+              <div style="background:#161922;border:1px solid #22252e;border-radius:12px;padding:16px;margin-bottom:24px;">
+                <div style="color:#c0c2cc;font-size:13px;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:150px;overflow-y:auto;">${keysJoined}</div>
+              </div>
+              
+              <div style="display:flex;gap:12px;">
+                <button id="download-keys-btn" style="flex:1;background:#2d323f;color:#fff;border:none;border-radius:10px;padding:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">
+                  <i class="fa-solid fa-download"></i> Download
+                </button>
+                <button onclick="window.location.href='my_orders.html'" style="flex:1;background:#6d5ef8;color:#fff;border:none;border-radius:10px;padding:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;">
+                  View All Orders
+                </button>
+              </div>
+            </div>
+          `;
+          
+          document.getElementById('download-keys-btn').addEventListener('click', () => {
+            const keysList = o.keys || [];
+            let fileContent = 'StackVault — Official Order Receipt\\n';
+            fileContent += '=============================================\\n';
+            fileContent += 'Product  : ' + o.productName + '\\n';
+            fileContent += 'Quantity : ' + o.quantity + '\\n';
+            fileContent += 'Order ID : #' + o.id + '\\n';
+            fileContent += 'Total    : $' + o.totalCharged + ' USD\\n';
+            fileContent += 'Date     : ' + new Date(o.date).toLocaleString() + '\\n';
+            fileContent += '=============================================\\n\\n';
+            fileContent += 'Your License Keys / Credentials:\\n';
+            fileContent += '---------------------------------------------\\n';
+            keysList.forEach((k, i) => { fileContent += (i + 1) + '. ' + k + '\\n'; });
+            fileContent += '---------------------------------------------\\n\\nThank you for choosing StackVault!\\nWebsite: https://stackvault.xyz\\nSupport: https://t.me/stackvault_bot\\n';
+
+            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'StackVault_' + (o.productName || 'Product').replace(/[^a-zA-Z0-9_-]/g, '_') + '_#' + o.id + '.txt';
+            a.click();
+          });
         } else {
           throw new Error('Purchase failed');
         }

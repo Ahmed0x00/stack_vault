@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="css/shell.css">
 <style>
   :root{
@@ -197,6 +198,7 @@
     border:1px solid var(--border);
     border-radius:var(--radius);
     padding:18px;
+    height:100%;
     display:flex; flex-direction:column;
     transition:border-color .15s;
   }
@@ -209,16 +211,8 @@
   .product-thumb{
     width:64px; height:64px; border-radius:12px;
     display:flex; align-items:center; justify-content:center;
-    flex-shrink:0; color:#fff;
+    flex-shrink:0; color:#fff; font-size: 26px;
   }
-  .product-thumb svg{width:28px; height:28px;}
-  .thumb-chatgpt{background:#0f8a6b;}
-  .thumb-canva{background:linear-gradient(135deg, #00c4cc, #7d2ae8);}
-  .thumb-msoffice{background:var(--surface-2); border:1px solid var(--border);}
-  .thumb-netflix{background:var(--surface-2); border:1px solid var(--border); color:#e50914;}
-  .thumb-coursera{background:#0056d2;}
-  .thumb-spotify{background:#1ed760;}
-
   .card-meta{flex:1; min-width:0;}
   .card-meta-row{
     display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
@@ -263,13 +257,14 @@
   }
   .buy-btn{
     width:100%;
-    background:linear-gradient(180deg, #6a5cf7, #5646e8);
-    color:#fff; border:none; border-radius:9px;
+    background:var(--surface-2);
+    color:var(--text); border:1px solid var(--border); border-radius:9px;
     padding:11px; margin-top:12px;
-    font-size:13.5px; font-weight:700;
+    font-size:13.5px; font-weight:600;
     display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:background .2s;
   }
-  .buy-btn:hover{background:linear-gradient(180deg, #7669f8, #5f50ea);}
+  .buy-btn:hover{background:#2a2d38; color:#fff;}
   .buy-btn svg{width:15px; height:15px;}
 
   /* ===== FEATURES STRIP ===== */
@@ -714,6 +709,19 @@ function getCategoryColor(cat) {
   return colors[cat] || '#1b1e27';
 }
 
+function getCategoryIcon(cat) {
+  const icons = {
+    ai: 'fa-solid fa-robot',
+    software: 'fa-solid fa-key',
+    streaming: 'fa-solid fa-play',
+    design: 'fa-solid fa-palette',
+    learning: 'fa-solid fa-graduation-cap',
+    emails: 'fa-solid fa-envelope',
+    general: 'fa-solid fa-cloud'
+  };
+  return icons[cat] || 'fa-solid fa-box';
+}
+
 const BOX_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 3v18"/></svg>';
 const CART_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M3 3h2l2.4 12.3a2 2 0 002 1.7h7.6a2 2 0 002-1.6L20 8H7"/></svg>';
 
@@ -788,19 +796,21 @@ function renderProductCard(product) {
   const stockClass = product.inStock ? 'badge-stock' : 'badge-stock-out';
   const price = typeof product.price === 'number' ? product.price.toFixed(2) : product.price;
   const desc = (product.description || '').replace(/</g, '&lt;');
+  const name = (product.name || '').replace(/</g, '&lt;');
+  const catName = (product.categoryName || product.category || '').replace(/</g, '&lt;');
   return `
     <div class="product-card">
       <div class="card-top">
         ${getProductImageHtml(product.name, product.category, `
           <div class="product-thumb" style="background:${getCategoryColor(product.category)}">
-            ${BOX_ICON}
+            <i class="${getCategoryIcon(product.category)}"></i>
           </div>
         `)}
         <div class="card-meta">
           <div class="card-meta-row">
             <div style="flex:1;min-width:0;">
-              <div class="card-cat">${product.categoryName || product.category || ''}</div>
-              <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${product.name || ''}</div>
+              <div class="card-cat">${catName}</div>
+              <div class="card-title">${name}</div>
             </div>
             <span class="${stockClass}">${stockLabel}</span>
           </div>
@@ -809,7 +819,7 @@ function renderProductCard(product) {
       <div class="card-desc">${desc}</div>
       <div class="card-price">$${price}</div>
       <button class="buy-btn" data-product-id="${product.id}">
-        ${CART_ICON}
+        <i class="fa-solid fa-cart-shopping"></i>
         Buy Now
       </button>
     </div>
