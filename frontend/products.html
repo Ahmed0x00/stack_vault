@@ -320,6 +320,18 @@
             height: fit-content;
         }
 
+        .badge-stock-out {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            font-weight: 600;
+            font-size: 0.68rem;
+            padding: 0.25rem 0.55rem;
+            border-radius: 6px;
+            white-space: nowrap;
+            height: fit-content;
+        }
+
         .card-desc {
             font-size: 0.78rem;
             color: var(--text-dim);
@@ -1067,6 +1079,7 @@ function filterProducts() {
 
 function renderCard(product) {
   const stockLabel = product.inStock ? `In Stock (${product.stock || 0})` : 'Out of Stock';
+  const stockClass = product.inStock ? 'badge-stock' : 'badge-stock-out';
   const price = typeof product.price === 'number' ? product.price.toFixed(2) : product.price;
   const desc = (product.description || '').replace(/</g, '&lt;');
   const name = (product.name || '').replace(/</g, '&lt;');
@@ -1082,7 +1095,7 @@ function renderCard(product) {
                 <div class="card-cat">${catName}</div>
                 <div class="card-title">${name}</div>
               </div>
-              <span class="badge-stock">${stockLabel}</span>
+              <span class="${stockClass}">${stockLabel}</span>
             </div>
           </div>
         </div>

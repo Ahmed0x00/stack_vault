@@ -226,8 +226,15 @@
   .card-cat{font-size:11.5px; color:var(--text-dim); margin-bottom:2px;}
   .card-title{font-weight:700; font-size:16px; line-height:1.25;}
   .badge-stock{
-    background:var(--green-soft); color:var(--green);
+    background:rgba(34,224,143,0.1); color:#22e08f;
     border:1px solid rgba(34,224,143,0.3);
+    font-weight:600; font-size:11px;
+    padding:4px 9px; border-radius:6px;
+    white-space:nowrap; height:fit-content;
+  }
+  .badge-stock-out{
+    background:rgba(239,68,68,0.1); color:#ef4444;
+    border:1px solid rgba(239,68,68,0.3);
     font-weight:600; font-size:11px;
     padding:4px 9px; border-radius:6px;
     white-space:nowrap; height:fit-content;
@@ -778,6 +785,7 @@ function wireShellAuth() {
 
 function renderProductCard(product) {
   const stockLabel = product.inStock ? `In Stock (${product.stock || 0})` : 'Out of Stock';
+  const stockClass = product.inStock ? 'badge-stock' : 'badge-stock-out';
   const price = typeof product.price === 'number' ? product.price.toFixed(2) : product.price;
   const desc = (product.description || '').replace(/</g, '&lt;');
   return `
@@ -790,11 +798,11 @@ function renderProductCard(product) {
         `)}
         <div class="card-meta">
           <div class="card-meta-row">
-            <div>
+            <div style="flex:1;min-width:0;">
               <div class="card-cat">${product.categoryName || product.category || ''}</div>
-              <div class="card-title">${product.name || ''}</div>
+              <div class="card-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${product.name || ''}</div>
             </div>
-            <span class="badge-stock">${stockLabel}</span>
+            <span class="${stockClass}">${stockLabel}</span>
           </div>
         </div>
       </div>

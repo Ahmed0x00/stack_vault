@@ -24,27 +24,27 @@ async function openBuyModal(productId) {
 
     // Build the modal UI
     overlay.innerHTML = `
-      <div style="background:#111319;border:1px solid #22252e;border-radius:16px;padding:32px;max-width:500px;width:100%;position:relative;animation: modalFadeIn 0.2s ease-out;">
-        <button id="buy-modal-close" style="position:absolute;top:20px;right:20px;background:none;border:none;color:#9a9ca6;font-size:20px;cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+      <div style="background:#111319;border:1px solid #22252e;border-radius:16px;padding:24px;max-width:500px;width:100%;box-sizing:border-box;position:relative;animation: modalFadeIn 0.2s ease-out;margin:0 16px;">
+        <button id="buy-modal-close" style="position:absolute;top:16px;right:16px;background:none;border:none;color:#9a9ca6;font-size:24px;cursor:pointer;line-height:1;">&times;</button>
         
         <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
           ${logoHtml}
-          <div>
-            <h2 style="margin:0;font-size:20px;color:#fff;">${(p.name || '').replace(/</g, '&lt;')}</h2>
-            <div style="color:#9a9ca6;font-size:14px;margin-top:4px;">${p.categoryName || p.category || ''} · <span style="color:${p.inStock ? '#10b981' : '#ef4444'}">${p.inStock ? `In Stock (${p.stock || 0})` : 'Out of Stock'}</span></div>
+          <div style="flex:1;min-width:0;">
+            <h2 style="margin:0;font-size:18px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(p.name || '').replace(/</g, '&lt;')}</h2>
+            <div style="color:#9a9ca6;font-size:13px;margin-top:4px;">${p.categoryName || p.category || ''} · <span style="color:${p.inStock ? '#10b981' : '#ef4444'}">${p.inStock ? `In Stock (${p.stock || 0})` : 'Out of Stock'}</span></div>
           </div>
         </div>
 
-        <div style="background:#161922;border:1px solid #22252e;border-radius:12px;padding:16px;margin-bottom:24px;max-height:200px;overflow-y:auto;">
-          <p style="margin:0;color:#c0c2cc;font-size:14px;line-height:1.6;white-space:pre-wrap;">${(p.description || 'No description provided.').replace(/</g, '&lt;')}</p>
+        <div style="background:#161922;border:1px solid #22252e;border-radius:12px;padding:16px;margin-bottom:24px;max-height:180px;overflow-y:auto;box-sizing:border-box;">
+          <p style="margin:0;color:#c0c2cc;font-size:14px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word;">${(p.description || 'No description provided.').replace(/</g, '&lt;')}</p>
         </div>
 
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;background:#161922;padding:16px;border-radius:12px;border:1px solid #22252e;">
-          <div style="color:#fff;font-size:16px;font-weight:600;">Quantity</div>
-          <div style="display:flex;align-items:center;gap:12px;">
-            <button id="qty-minus" style="width:36px;height:36px;border-radius:8px;border:1px solid #323644;background:#22252e;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;"><i class="fa-solid fa-minus"></i></button>
-            <input type="number" id="qty-input" value="1" min="1" max="1000" style="width:70px;height:36px;background:#111319;border:1px solid #323644;border-radius:8px;color:#fff;font-size:16px;font-weight:600;text-align:center;outline:none;-moz-appearance:textfield;">
-            <button id="qty-plus" style="width:36px;height:36px;border-radius:8px;border:1px solid #323644;background:#22252e;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;"><i class="fa-solid fa-plus"></i></button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;background:#161922;padding:16px;border-radius:12px;border:1px solid #22252e;box-sizing:border-box;flex-wrap:wrap;gap:12px;">
+          <div style="color:#fff;font-size:15px;font-weight:600;">Quantity</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button id="qty-minus" style="width:36px;height:36px;border-radius:8px;border:1px solid #323644;background:#22252e;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;font-size:20px;font-weight:bold;line-height:1;">-</button>
+            <input type="number" id="qty-input" value="1" min="1" max="1000" style="width:60px;height:36px;background:#111319;border:1px solid #323644;border-radius:8px;color:#fff;font-size:16px;font-weight:600;text-align:center;outline:none;-moz-appearance:textfield;box-sizing:border-box;">
+            <button id="qty-plus" style="width:36px;height:36px;border-radius:8px;border:1px solid #323644;background:#22252e;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;font-size:20px;font-weight:bold;line-height:1;">+</button>
           </div>
         </div>
 
