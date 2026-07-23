@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT Plus - StackVault</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shell.css">
+<style>
+        :root {
+            --bg: #0b0c10;
+            --panel: #12141a;
+            --panel-2: #171a21;
+            --panel-3: #1b1e27;
+            --border: #242732;
+            --border-soft: #1d2029;
+            --text: #f4f5f7;
+            --text-muted: #9296a1;
+            --text-dim: #5c616e;
+            --purple: #5b4cf5;
+            --purple-soft: rgba(91, 76, 245, 0.12);
+            --green: #22c55e;
+            --green-soft: rgba(34, 197, 94, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        /* ---------- Navbar ---------- */
+        .navbar-custom {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border-soft);
+            padding: 0.85rem 1.5rem;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #8b5cf6, #4a3de0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .brand-name {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .nav-item-top {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.2rem;
+            position: relative;
+        }
+
+        .nav-item-top.active {
+            color: var(--text);
+        }
+
+        .nav-item-top.active::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -14px;
+            height: 2px;
+            background: var(--purple);
+            border-radius: 2px;
+        }
+
+        .search-box {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.5rem 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: var(--text-dim);
+            flex-grow: 1;
+            max-width: 420px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .kbd-hint {
+            background: var(--panel-3);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+            color: var(--text-dim);
+        }
+
+        .topbar-balance {
+            background: var(--panel-2);
+            border: 1px solid var(--border-soft);
+            border-radius: 10px;
+            padding: 0.35rem 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .balance-label {
+            font-size: 0.68rem;
+            color: var(--text-dim);
+        }
+
+        .balance-amount {
+            font-weight: 700;
+            color: var(--green);
+            font-size: 0.95rem;
+        }
+
+        .plus-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            background: var(--purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            border: none;
+            font-size: 0.7rem;
+        }
+
+        .avatar-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        /* ---------- Content ---------- */
+        .page-wrap {
+            padding: 1.75rem 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .breadcrumb-custom {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 1.5rem;
+        }
+
+        .breadcrumb-custom a {
+            color: var(--text-dim);
+        }
+
+        .breadcrumb-custom .current {
+            color: var(--text-muted);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 14px;
+            padding: 1.4rem;
+        }
+
+        .product-icon {
+            width: 150px;
+            height: 150px;
+            border-radius: 16px;
+            background: #0f8a6b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .product-icon svg {
+            width: 70px;
+            height: 70px;
+            fill: #fff;
+        }
+
+        .badge-soft {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 6px;
+        }
+
+        .badge-stock {
+            background: var(--green-soft);
+            color: var(--green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 6px;
+        }
+
+        .product-title {
+            font-weight: 800;
+            font-size: 1.7rem;
+            letter-spacing: -0.01em;
+        }
+
+        .product-desc {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .tag-chip {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 7px;
+        }
+
+        .feature-row {
+            border-top: 1px solid var(--border-soft);
+            margin-top: 1.4rem;
+            padding-top: 1.4rem;
+        }
+
+        .feature-mini {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .feature-mini i {
+            color: #8b8dfb;
+            font-size: 1.05rem;
+            width: 22px;
+            text-align: center;
+        }
+
+        .feature-mini-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .feature-mini-sub {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+
+        .section-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .check-list-box {
+            background: var(--panel-2);
+            border: 1px solid var(--border-soft);
+            border-radius: 12px;
+            padding: 1.1rem 1.3rem;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0;
+            font-size: 0.88rem;
+            color: var(--text);
+        }
+
+        .check-item i {
+            color: var(--green);
+            font-size: 0.85rem;
+        }
+
+        .info-card {
+            background: var(--panel-2);
+            border: 1px solid var(--border-soft);
+            border-radius: 12px;
+            padding: 1.1rem;
+            height: 100%;
+        }
+
+        .info-card-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: var(--purple-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8b8dfb;
+            font-size: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .info-card-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .info-card-sub {
+            font-weight: 700;
+            color: #b8b0ff;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-card-text {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            line-height: 1.55;
+        }
+
+        /* ---------- Sticky sidebar ---------- */
+        .price-value {
+            font-size: 2.1rem;
+            font-weight: 800;
+        }
+
+        .price-usd {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .qty-control {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.6rem;
+        }
+
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 7px;
+            background: var(--panel-3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qty-btn:hover {
+            background: #232733;
+        }
+
+        .btn-buy {
+            background: linear-gradient(180deg, #6a5cf7, #5646e8);
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 0.8rem;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.92rem;
+        }
+
+        .btn-buy:hover {
+            color: #fff;
+            background: linear-gradient(180deg, #7669f8, #5f50ea);
+        }
+
+        .secure-note {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 0.65rem;
+        }
+
+        .receive-item {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+
+        .receive-item i {
+            color: #8b8dfb;
+            width: 18px;
+            text-align: center;
+        }
+
+        .support-note {
+            font-size: 0.82rem;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        .support-note a {
+            color: #8b8dfb;
+            font-weight: 600;
+        }
+
+        hr.soft {
+            border-color: var(--border-soft);
+            opacity: 1;
+            margin: 0.9rem 0;
+        }
+
+        @media (max-width:991.98px) {
+
+            .nav-links-desktop,
+            .search-box {
+                display: none !important;
+            }
+        }
+
+        @media (max-width:767.98px) {
+            .product-icon {
+                width: 110px;
+                height: 110px;
+            }
+
+            .product-icon svg {
+                width: 52px;
+                height: 52px;
+            }
+
+            .product-title {
+                font-size: 1.35rem;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a2d3a;
+            border-radius: 8px;
+        }
+    </style>
+
+
+
+<style id="shell-overrides">
+  body.app-shell { display: flex !important; margin: 0; min-height: 100vh; }
+  body.app-shell > .sidebar {
+    display: flex !important;
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    width: var(--sidebar-width, 232px) !important;
+  }
+  body.app-shell > .content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  body.app-shell .content > .main, body.app-shell main.main { flex: 1; }
+  body.app-shell .navbar-custom,
+  body.app-shell #mobileNav,
+  body.app-shell .content > .topnav,
+  body.app-shell .legacy-topnav { display: none !important; }
+  @media (max-width: 960px) {
+    body.app-shell > .sidebar {
+      position: fixed !important;
+      transform: translateX(-100%);
+      transition: transform .2s ease;
+    }
+    body.sidebar-open.app-shell > .sidebar { transform: translateX(0); }
+  }
+</style>
+</head>
+
+<body class="app-shell">
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="home.html">
+    <div class="brand-icon">S</div>
+    <div>
+      <div class="brand-name">StackVault</div>
+      <div class="brand-sub">Digital Subscriptions &amp; Keys</div>
+    </div>
+  </a>
+
+  <nav class="nav">
+    <a class="nav-item active" href="products.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+      Shop Catalog
+    </a>
+    <a class="nav-item" href="my_orders.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+      My Orders
+    </a>
+    <a class="nav-item" href="top_up_balance.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Top Up Balance
+    </a>
+    <a class="nav-item" href="my_account.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      My Account
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Telegram Seller
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>
+      Support
+    </a>
+  </nav>
+
+  <div class="sidebar-spacer"></div>
+
+  <a class="balance-box" href="top_up_balance.html">
+    <div>
+      <div class="balance-label">Your Balance</div>
+      <div class="balance-amount">$0.00 <span>USD</span></div>
+    </div>
+    <span class="add-btn">+</span>
+  </a>
+
+  <div class="help-box">
+    <p>Need help? Our support team is here 24/7.</p>
+    <a class="contact-btn" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 18v-6a9 9 0 0118 0v6"/>
+        <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/>
+      </svg>
+      Contact Support
+    </a>
+  </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-backdrop></div>
+<div class="content">
+<header class="topbar">
+  <button class="menu-toggle" type="button" aria-label="Open menu" data-toggle-sidebar>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="topbar-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="search" placeholder="Search for products, keys or accounts..." aria-label="Search">
+  </div>
+  <div class="topbar-right">
+    <div class="user-menu">
+      <a class="top-user" href="my_account.html" title="Account menu">
+        <div class="avatar">T</div>
+        <span>test</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </a>
+      <div class="user-dropdown">
+        <a href="my_account.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          My Account
+        </a>
+        <a href="login.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="main">
+<div class="page-wrap">
+
+        <div class="breadcrumb-custom">
+            <a href="home.html">Home</a> <i class="fa-solid fa-chevron-right mx-1" style="font-size:0.6rem;"></i>
+            <a href="products.html">Shop</a> <i class="fa-solid fa-chevron-right mx-1" style="font-size:0.6rem;"></i>
+            <a href="#">AI Tools</a> <i class="fa-solid fa-chevron-right mx-1" style="font-size:0.6rem;"></i>
+            <span class="current">ChatGPT Plus</span>
+        </div>
+
+        <div class="row g-4">
+            <!-- LEFT COLUMN -->
+            <div class="col-12 col-xl-8">
+                <div class="panel mb-4">
+                    <div class="d-flex flex-column flex-sm-row gap-3 gap-sm-4">
+                        <div class="product-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M22.28 9.82a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9A6.07 6.07 0 0 0 4.98 4.18a5.98 5.98 0 0 0-4 2.9 6.05 6.05 0 0 0 .75 7.09 5.98 5.98 0 0 0 .51 4.91 6.05 6.05 0 0 0 6.52 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.21 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.07zM13.26 22.4a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.79-2.77a.8.8 0 0 0 .39-.68v-6.77l2.02 1.17a.07.07 0 0 1 .04.06v5.6a4.5 4.5 0 0 1-4.5 4.5zM3.6 18.3a4.47 4.47 0 0 1-.53-3.02l.14.09 4.79 2.77a.78.78 0 0 0 .78 0l5.85-3.38v2.33a.08.08 0 0 1-.03.07l-4.84 2.8a4.5 4.5 0 0 1-6.16-1.65zM2.4 7.9a4.47 4.47 0 0 1 2.35-1.97v5.69a.78.78 0 0 0 .39.68l5.85 3.38-2.02 1.17a.08.08 0 0 1-.07 0L3.86 14a4.5 4.5 0 0 1-1.46-6.1zm16.63 3.87-5.85-3.39 2.02-1.16a.08.08 0 0 1 .07 0l4.84 2.8a4.5 4.5 0 0 1-.69 8.11v-5.68a.79.79 0 0 0-.39-.68zm2.01-3.03-.14-.09-4.79-2.77a.78.78 0 0 0-.78 0l-5.85 3.38V6.93a.07.07 0 0 1 .03-.07l4.84-2.79a4.5 4.5 0 0 1 6.69 4.67zM8.55 12.87l-2.02-1.17a.07.07 0 0 1-.04-.06v-5.6a4.5 4.5 0 0 1 7.38-3.46l-.14.08-4.79 2.77a.8.8 0 0 0-.39.68v6.76zm1.1-2.37 2.6-1.5 2.6 1.5v3.01l-2.6 1.5-2.6-1.5v-3.01z" />
+                            </svg>
+                        </div>
+                        <div class="flex-grow-1">
+                            <span class="badge-soft mb-2 d-inline-block">AI Tools</span>
+                            <h1 class="product-title mb-1">ChatGPT Plus</h1>
+                            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                <span class="badge-stock">In Stock</span>
+                            </div>
+                            <p class="product-desc mb-3">Official ChatGPT Plus account with GPT-4o access. Fast
+                                delivery and priority access.</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="tag-chip">Official</span>
+                                <span class="tag-chip">1 Month</span>
+                                <span class="tag-chip">GPT-4o</span>
+                                <span class="tag-chip">Priority Access</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="feature-row row row-cols-1 row-cols-md-3 g-3">
+                        <div class="col">
+                            <div class="feature-mini"><i class="fa-solid fa-bolt"></i>
+                                <div>
+                                    <div class="feature-mini-title">Instant Delivery</div>
+                                    <div class="feature-mini-sub">1-5 min</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="feature-mini"><i class="fa-solid fa-shield-halved"></i>
+                                <div>
+                                    <div class="feature-mini-title">Secure &amp; Encrypted</div>
+                                    <div class="feature-mini-sub">SSL protected</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="feature-mini"><i class="fa-solid fa-headset"></i>
+                                <div>
+                                    <div class="feature-mini-title">24/7 Support</div>
+                                    <div class="feature-mini-sub">Always here</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel mb-4">
+                    <div class="section-title">About This Product</div>
+                    <p class="product-desc mb-3">Get full access to ChatGPT Plus with the latest GPT-4o model, faster
+                        responses, priority access to new features, and enhanced capabilities for writing, coding, and
+                        productivity.</p>
+
+                    <div class="check-list-box">
+                        <div class="row">
+                            <div class="col-12 col-md-6">
+                                <div class="check-item"><i class="fa-solid fa-circle-check"></i> Official ChatGPT Plus
+                                    account</div>
+                                <div class="check-item"><i class="fa-solid fa-circle-check"></i> Access to GPT-4o and
+                                    GPT-4o mini</div>
+                                <div class="check-item"><i class="fa-solid fa-circle-check"></i> Priority access during
+                                    peak hours</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="check-item"><i class="fa-solid fa-circle-check"></i> DALL·E 3 image
+                                    generation</div>
+                                <div class="check-item"><i class="fa-solid fa-circle-check"></i> Advanced data analysis
+                                </div>
+                                <div class="check-item"><i class="fa-solid fa-circle-check"></i> Instant digital
+                                    delivery</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="section-title">Delivery</div>
+                    <div class="info-card">
+                        <div class="info-card-icon"><i class="fa-solid fa-bolt"></i></div>
+                        <div class="info-card-title mb-1">Delivery Time</div>
+                        <div class="info-card-sub">1 – 5 minutes</div>
+                        <div class="info-card-text">Your account details will be delivered automatically after
+                            purchase.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN (sticky) -->
+            <div class="col-12 col-xl-4">
+                <div style="position:sticky;top:1.5rem;">
+                    <div class="panel mb-4">
+                        <div class="fw-bold" style="font-size:1.1rem;">ChatGPT Plus</div>
+                        <div class="text-dim mb-3" style="color:var(--text-dim);font-size:0.85rem;">1 Month Subscription
+                        </div>
+                        <hr class="soft">
+
+                        <div class="d-flex justify-content-between align-items-end mb-3">
+                            <div>
+                                <div class="text-dim mb-1" style="color:var(--text-dim);font-size:0.78rem;">Price</div>
+                                <div class="price-value">$4.99</div>
+                            </div>
+                            <div class="price-usd">USD</div>
+                        </div>
+
+                        <label class="text-dim mb-2 d-block"
+                            style="color:var(--text-dim);font-size:0.85rem;">Quantity</label>
+                        <div class="qty-control mb-3">
+                            <button class="qty-btn" id="qtyMinus"><i class="fa-solid fa-minus"
+                                    style="font-size:0.7rem;"></i></button>
+                            <span id="qtyValue" class="fw-bold">1</span>
+                            <button class="qty-btn" id="qtyPlus"><i class="fa-solid fa-plus"
+                                    style="font-size:0.7rem;"></i></button>
+                        </div>
+
+                        <button class="btn-buy"><i class="fa-solid fa-cart-shopping"></i> Buy Now</button>
+                        <div class="secure-note"><i class="fa-solid fa-lock me-1"></i>Secure checkout • SSL encrypted
+                        </div>
+                    </div>
+
+                    <div class="panel">
+                        <div class="fw-bold mb-3" style="font-size:1rem;">You'll receive</div>
+                        <div class="receive-item"><i class="fa-regular fa-envelope"></i> Login email and password</div>
+                        <div class="receive-item"><i class="fa-solid fa-gear"></i> Access to GPT-4o</div>
+                        <div class="receive-item"><i class="fa-regular fa-file-lines"></i> Setup guide (if needed)</div>
+                        <hr class="soft">
+                        <div class="support-note">Need help? Contact our <a href="#">support team</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script><script>
+        let qty = 1;
+        const qtyValue = document.getElementById('qtyValue');
+        document.getElementById('qtyPlus').addEventListener('click', () => {
+            qty++; qtyValue.textContent = qty;
+        });
+        document.getElementById('qtyMinus').addEventListener('click', () => {
+            if (qty > 1) { qty--; qtyValue.textContent = qty; }
+        });
+    </script>
+</main>
+</div>
+
+<script>
+(function () {
+  var toggle = document.querySelector("[data-toggle-sidebar]");
+  var backdrop = document.querySelector("[data-sidebar-backdrop]");
+  function close() { document.body.classList.remove("sidebar-open"); }
+  if (toggle) toggle.addEventListener("click", function () {
+    document.body.classList.toggle("sidebar-open");
+  });
+  if (backdrop) backdrop.addEventListener("click", close);
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") close();
+  });
+})();
+</script>
+
+</body>
+
+</html>

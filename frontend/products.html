@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products - StackVault</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shell.css">
+<style>
+        :root {
+            --bg: #0b0c10;
+            --panel: #12141a;
+            --panel-2: #171a21;
+            --panel-3: #1b1e27;
+            --border: #242732;
+            --border-soft: #1d2029;
+            --text: #f4f5f7;
+            --text-muted: #9296a1;
+            --text-dim: #5c616e;
+            --purple: #5b4cf5;
+            --purple-soft: rgba(91, 76, 245, 0.12);
+            --green: #22c55e;
+            --green-soft: rgba(34, 197, 94, 0.12);
+            --amber: #f5b942;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        /* ---------- Navbar ---------- */
+        .navbar-custom {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border-soft);
+            padding: 0.85rem 1.5rem;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #8b5cf6, #4a3de0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .brand-name {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text);
+        }
+
+        .nav-item-top {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.2rem;
+            position: relative;
+        }
+
+        .nav-item-top.active {
+            color: var(--text);
+        }
+
+        .nav-item-top.active::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -14px;
+            height: 2px;
+            background: var(--purple);
+            border-radius: 2px;
+        }
+
+        .search-box {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.5rem 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            color: var(--text-dim);
+            flex-grow: 1;
+            max-width: 460px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .topbar-balance {
+            background: var(--panel-2);
+            border: 1px solid var(--border-soft);
+            border-radius: 10px;
+            padding: 0.35rem 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .balance-label {
+            font-size: 0.68rem;
+            color: var(--text-dim);
+        }
+
+        .balance-amount {
+            font-weight: 700;
+            color: var(--green);
+            font-size: 0.95rem;
+        }
+
+        .plus-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            background: var(--purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            border: none;
+            font-size: 0.7rem;
+        }
+
+        .avatar-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--purple);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        /* ---------- Hero ---------- */
+        .hero {
+            background: radial-gradient(ellipse at top left, rgba(91, 76, 245, 0.15), transparent 55%), var(--bg);
+            padding: 2.5rem 1.5rem 1.5rem;
+        }
+
+        .hero-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .hero-title {
+            font-weight: 900;
+            font-size: 2.4rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-sub {
+            color: var(--text-dim);
+            font-size: 1rem;
+            margin-top: 0.3rem;
+        }
+
+        /* ---------- Category pills ---------- */
+        .cat-scroll {
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .cat-scroll::-webkit-scrollbar {
+            height: 0;
+        }
+
+        .cat-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--panel);
+            border: 1px solid var(--border-soft);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.6rem 1.1rem;
+            border-radius: 10px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .cat-pill.active {
+            background: var(--purple);
+            border-color: var(--purple);
+            color: #fff;
+        }
+
+        .cat-pill:hover:not(.active) {
+            background: var(--panel-2);
+            color: var(--text);
+        }
+
+        /* ---------- Content wrap ---------- */
+        .page-wrap {
+            padding: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .results-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .filter-btn {
+            background: var(--panel);
+            border: 1px solid var(--border-soft);
+            color: var(--text-muted);
+            font-size: 0.83rem;
+            font-weight: 500;
+            padding: 0.5rem 0.9rem;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: var(--panel-2);
+            color: var(--text);
+        }
+
+        .filter-btn.filters-main {
+            background: var(--panel-2);
+            color: var(--text);
+        }
+
+        /* ---------- Product Card ---------- */
+        .product-card {
+            background: var(--panel);
+            border: 1px solid var(--border-soft);
+            border-radius: 14px;
+            padding: 1.1rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card:hover {
+            border-color: #33384a;
+        }
+
+        .card-top {
+            display: flex;
+            gap: 0.85rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .product-thumb {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.6rem;
+            color: #fff;
+        }
+
+        .card-cat {
+            font-size: 0.72rem;
+            color: var(--text-dim);
+            margin-bottom: 0.15rem;
+        }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 1.02rem;
+            line-height: 1.25;
+        }
+
+        .badge-stock {
+            background: var(--green-soft);
+            color: var(--green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            font-weight: 600;
+            font-size: 0.68rem;
+            padding: 0.25rem 0.55rem;
+            border-radius: 6px;
+            white-space: nowrap;
+            height: fit-content;
+        }
+
+        .card-desc {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+            min-height: 2.3em;
+        }
+
+        .tag-chip {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            padding: 0.22rem 0.55rem;
+            border-radius: 6px;
+        }
+
+        .card-rating {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin: 0.7rem 0 0.5rem;
+        }
+
+        .card-rating .stars {
+            color: var(--amber);
+        }
+
+        .card-price {
+            font-weight: 800;
+            font-size: 1.35rem;
+            margin-top: auto;
+        }
+
+        .btn-buy-card {
+            background: linear-gradient(180deg, #6a5cf7, #5646e8);
+            border: none;
+            color: #fff;
+            font-weight: 700;
+            border-radius: 9px;
+            padding: 0.6rem;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.87rem;
+            margin-top: 0.7rem;
+        }
+
+        .btn-buy-card:hover {
+            color: #fff;
+            background: linear-gradient(180deg, #7669f8, #5f50ea);
+        }
+
+        /* thumb color variants */
+        .thumb-chatgpt {
+            background: #0f8a6b;
+        }
+
+        .thumb-canva {
+            background: linear-gradient(135deg, #00c4cc, #7d2ae8);
+        }
+
+        .thumb-msoffice {
+            background: #1b1e27;
+            border: 1px solid var(--border);
+        }
+
+        .thumb-netflix {
+            background: #1b1e27;
+            border: 1px solid var(--border);
+            color: #e50914;
+        }
+
+        .thumb-windows {
+            background: #f2f2f2;
+            color: #00adef;
+        }
+
+        .thumb-gdrive {
+            background: #1b1e27;
+            border: 1px solid var(--border);
+        }
+
+        .thumb-spotify {
+            background: #1ed760;
+        }
+
+        .thumb-coursera {
+            background: #0056d2;
+        }
+
+        .thumb-midjourney {
+            background: #1b1e27;
+            border: 1px solid var(--border);
+            color: #fff;
+        }
+
+        /* ---------- Bottom features ---------- */
+        .feature-bar {
+            border-top: 1px solid var(--border-soft);
+            margin-top: 2rem;
+            padding-top: 1.75rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .feature-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+            color: #c9cbd4;
+        }
+
+        .feature-title {
+            font-weight: 700;
+            font-size: 0.88rem;
+        }
+
+        .feature-text {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+
+        @media (max-width:991.98px) {
+
+            .nav-links-desktop,
+            .search-box {
+                display: none !important;
+            }
+
+            .hero-title {
+                font-size: 1.9rem;
+            }
+        }
+
+        @media (max-width:575.98px) {
+            .hero {
+                padding: 1.75rem 1rem 1rem;
+            }
+
+            .hero-title {
+                font-size: 1.6rem;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a2d3a;
+            border-radius: 8px;
+        }
+    </style>
+
+
+
+<style id="shell-overrides">
+  body.app-shell { display: flex !important; margin: 0; min-height: 100vh; }
+  body.app-shell > .sidebar {
+    display: flex !important;
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    width: var(--sidebar-width, 232px) !important;
+  }
+  body.app-shell > .content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  body.app-shell .content > .main, body.app-shell main.main { flex: 1; }
+  body.app-shell .navbar-custom,
+  body.app-shell #mobileNav,
+  body.app-shell .content > .topnav,
+  body.app-shell .legacy-topnav { display: none !important; }
+  @media (max-width: 960px) {
+    body.app-shell > .sidebar {
+      position: fixed !important;
+      transform: translateX(-100%);
+      transition: transform .2s ease;
+    }
+    body.sidebar-open.app-shell > .sidebar { transform: translateX(0); }
+  }
+</style>
+</head>
+
+<body class="app-shell">
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="home.html">
+    <div class="brand-icon">S</div>
+    <div>
+      <div class="brand-name">StackVault</div>
+      <div class="brand-sub">Digital Subscriptions &amp; Keys</div>
+    </div>
+  </a>
+
+  <nav class="nav">
+    <a class="nav-item active" href="products.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+      Shop Catalog
+    </a>
+    <a class="nav-item" href="my_orders.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+      My Orders
+    </a>
+    <a class="nav-item" href="top_up_balance.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Top Up Balance
+    </a>
+    <a class="nav-item" href="my_account.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      My Account
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Telegram Seller
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>
+      Support
+    </a>
+  </nav>
+
+  <div class="sidebar-spacer"></div>
+
+  <a class="balance-box" href="top_up_balance.html">
+    <div>
+      <div class="balance-label">Your Balance</div>
+      <div class="balance-amount">$0.00 <span>USD</span></div>
+    </div>
+    <span class="add-btn">+</span>
+  </a>
+
+  <div class="help-box">
+    <p>Need help? Our support team is here 24/7.</p>
+    <a class="contact-btn" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 18v-6a9 9 0 0118 0v6"/>
+        <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/>
+      </svg>
+      Contact Support
+    </a>
+  </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-backdrop></div>
+<div class="content">
+<header class="topbar">
+  <button class="menu-toggle" type="button" aria-label="Open menu" data-toggle-sidebar>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="topbar-search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input type="search" placeholder="Search for products, keys or accounts..." aria-label="Search">
+  </div>
+  <div class="topbar-right">
+    <div class="user-menu">
+      <a class="top-user" href="my_account.html" title="Account menu">
+        <div class="avatar">T</div>
+        <span>test</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </a>
+      <div class="user-dropdown">
+        <a href="my_account.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          My Account
+        </a>
+        <a href="login.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="main">
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="hero-inner">
+    <h1 class="hero-title">Products</h1>
+    <p class="hero-sub">Digital subscriptions delivered instantly.</p>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div class="cat-scroll d-flex gap-2 mb-4">
+    <button class="cat-pill active"><i class="fa-solid fa-border-all"></i> All Products</button>
+    <button class="cat-pill"><i class="fa-solid fa-robot"></i> AI Tools</button>
+    <button class="cat-pill"><i class="fa-solid fa-key"></i> Software Keys</button>
+    <button class="cat-pill"><i class="fa-solid fa-play"></i> Streaming</button>
+    <button class="cat-pill"><i class="fa-solid fa-palette"></i> Design</button>
+    <button class="cat-pill"><i class="fa-solid fa-graduation-cap"></i> Learning</button>
+    <button class="cat-pill"><i class="fa-solid fa-cloud"></i> Cloud Services</button>
+    <button class="cat-pill"><i class="fa-solid fa-envelope"></i> Email Accounts</button>
+  </div>
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div class="results-label">Showing <strong>1–12</strong> of <strong>248</strong> products</div>
+    <div class="d-flex flex-wrap gap-2">
+      <button class="filter-btn">Sort: Popular <i class="fa-solid fa-chevron-down" style="font-size:.65rem"></i></button>
+      <button class="filter-btn">Category <i class="fa-solid fa-chevron-down" style="font-size:.65rem"></i></button>
+      <button class="filter-btn">Price <i class="fa-solid fa-chevron-down" style="font-size:.65rem"></i></button>
+      <button class="filter-btn">Availability <i class="fa-solid fa-chevron-down" style="font-size:.65rem"></i></button>
+      <button class="filter-btn filters-main"><i class="fa-solid fa-sliders"></i> Filters</button>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- cards -->
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-chatgpt"><i class="fa-solid fa-robot"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">AI Tools</div>
+                <div class="card-title">ChatGPT Plus</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Official ChatGPT Plus account — GPT-4o, DALL·E 3, priority access.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Month</span><span class="tag-chip">Official</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.9 (12.4k)</div>
+        <div class="card-price">$4.99</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-canva"><i class="fa-solid fa-palette"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">Design</div>
+                <div class="card-title">Canva Pro</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Canva Pro with Brand Kit, background remover, and Magic Studio.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Year</span><span class="tag-chip">Official</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.8 (8.1k)</div>
+        <div class="card-price">$3.49</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-msoffice"><i class="fa-brands fa-microsoft"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">Software Keys</div>
+                <div class="card-title">Microsoft 365</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Word, Excel, PowerPoint + 1TB OneDrive. Personal license key.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Year</span><span class="tag-chip">Retail Key</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.9 (15.2k)</div>
+        <div class="card-price">$6.99</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-netflix"><i class="fa-solid fa-n"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">Streaming</div>
+                <div class="card-title">Netflix Premium</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">4K Ultra HD, 4 screens. Shared private profile included.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Month</span><span class="tag-chip">4K</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★☆</span> 4.7 (9.6k)</div>
+        <div class="card-price">$2.99</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-windows"><i class="fa-brands fa-windows"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">Software Keys</div>
+                <div class="card-title">Windows 11 Pro</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Genuine Windows 11 Pro retail key. Instant delivery by email.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">Lifetime</span><span class="tag-chip">Retail</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.9 (21k)</div>
+        <div class="card-price">$8.49</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-gdrive"><i class="fa-brands fa-google-drive"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">Cloud Services</div>
+                <div class="card-title">Google Drive 2TB</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Google One 2TB storage plan. Shared family slot available.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Year</span><span class="tag-chip">2TB</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.8 (5.4k)</div>
+        <div class="card-price">$5.99</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-spotify"><i class="fa-brands fa-spotify"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">Streaming</div>
+                <div class="card-title">Spotify Premium</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Ad-free music, offline downloads, and high-quality audio.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Month</span><span class="tag-chip">Individual</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.8 (11k)</div>
+        <div class="card-price">$1.99</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-coursera"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">Learning</div>
+                <div class="card-title">Coursera Plus</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Unlimited access to 7,000+ courses and professional certificates.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Month</span><span class="tag-chip">Unlimited</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.7 (3.2k)</div>
+        <div class="card-price">$7.49</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-4">
+      <div class="product-card">
+        <div class="card-top">
+          <div class="product-thumb thumb-midjourney"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between gap-2">
+              <div>
+                <div class="card-cat">AI Tools</div>
+                <div class="card-title">Midjourney Standard</div>
+              </div>
+              <span class="badge-stock">In Stock</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-desc">Midjourney Standard plan — fast GPU hours and commercial use.</div>
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <span class="tag-chip">1 Month</span><span class="tag-chip">Standard</span><span class="tag-chip">Warranty</span>
+        </div>
+        <div class="card-rating"><span class="stars">★★★★★</span> 4.9 (6.8k)</div>
+        <div class="card-price">$9.99</div>
+        <a class="btn btn-buy-card" href="product_details.html"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-bar">
+    <div class="row g-3">
+      <div class="col-6 col-lg-3">
+        <div class="feature-item">
+          <div class="feature-icon" style="background:rgba(34,197,94,.12);color:#22c55e"><i class="fa-solid fa-bolt"></i></div>
+          <div><div class="feature-title">Instant Delivery</div><div class="feature-text">Keys delivered in seconds</div></div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="feature-item">
+          <div class="feature-icon" style="background:rgba(91,76,245,.12);color:#8b7cf8"><i class="fa-solid fa-shield-halved"></i></div>
+          <div><div class="feature-title">100% Secure</div><div class="feature-text">Encrypted payments & data</div></div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="feature-item">
+          <div class="feature-icon" style="background:rgba(245,185,66,.12);color:#f5b942"><i class="fa-solid fa-rotate"></i></div>
+          <div><div class="feature-title">Replacement Warranty</div><div class="feature-text">Free replace if it fails</div></div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="feature-item">
+          <div class="feature-icon" style="background:rgba(79,168,240,.12);color:#4fa8f0"><i class="fa-solid fa-headset"></i></div>
+          <div><div class="feature-title">24/7 Support</div><div class="feature-text">We're always here to help</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script><script>
+  document.querySelectorAll('.cat-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+</script>
+</main>
+</div>
+
+<script>
+(function () {
+  var toggle = document.querySelector("[data-toggle-sidebar]");
+  var backdrop = document.querySelector("[data-sidebar-backdrop]");
+  function close() { document.body.classList.remove("sidebar-open"); }
+  if (toggle) toggle.addEventListener("click", function () {
+    document.body.classList.toggle("sidebar-open");
+  });
+  if (backdrop) backdrop.addEventListener("click", close);
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") close();
+  });
+})();
+</script>
+
+</body>
+
+</html>

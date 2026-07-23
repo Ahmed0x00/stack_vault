@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StackVault — Top Up Balance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shell.css">
+<style>
+  :root{
+    --bg:#08090c;
+    --surface:#111319;
+    --surface-2:#161922;
+    --border:#22252e;
+    --sidebar:#0c0e12;
+    --accent:#6d5ef8;
+    --accent-2:#5a4ce0;
+    --accent-soft:rgba(109,94,248,0.12);
+    --green:#22e08f;
+    --green-soft:rgba(34,224,143,0.12);
+    --amber:#fbbf24;
+    --amber-soft:rgba(251,191,36,0.1);
+    --blue:#4fa8f0;
+    --blue-soft:rgba(79,168,240,0.1);
+    --binance:#f0b90b;
+    --text:#f4f4f6;
+    --text-mid:#9a9ca6;
+    --text-dim:#65676f;
+    --font:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  /* body layout owned by shell.css */
+        /* \1\2\3 */
+  a{color:inherit; text-decoration:none;}
+  button{font-family:var(--font); cursor:pointer;}
+
+  .sidebar{
+    width:240px; background:var(--sidebar); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:20px 16px; flex-shrink:0;
+  }
+  .brand{display:flex; align-items:center; gap:11px; padding:4px 4px 24px;}
+  .brand-icon{
+    width:36px; height:36px; border-radius:10px;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:16px;
+  }
+  .brand-name{font-weight:700; font-size:15px; line-height:1.2;}
+  .brand-sub{font-size:11px; color:var(--text-dim);}
+  .nav{display:flex; flex-direction:column; gap:3px;}
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding:10px 11px; border-radius:9px;
+    font-size:13.5px; color:var(--text-mid);
+  }
+  .nav-item svg{width:17px; height:17px; flex-shrink:0;}
+  .nav-item:hover{background:var(--surface-2); color:var(--text);}
+  .nav-item.active{background:var(--accent-soft); color:#b3a9fb;}
+  .sidebar-spacer{flex:1;}
+  .balance-box{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:12px 14px; margin-bottom:12px;
+  }
+  .balance-box-top{display:flex; align-items:center; justify-content:space-between;}
+  .balance-label{
+    font-size:10px; color:var(--text-dim);
+    letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px;
+  }
+  .balance-amount{color:var(--green); font-weight:700; font-size:17px;}
+  .balance-amount span{color:var(--text-dim); font-size:11.5px; font-weight:500; margin-left:3px;}
+  .add-btn{
+    width:28px; height:28px; border-radius:8px;
+    background:var(--accent); color:#fff; border:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:600;
+  }
+  .user-row{
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:10px 12px;
+  }
+  .user-avatar{
+    width:30px; height:30px; border-radius:8px; background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700;
+  }
+  .user-row .name{font-size:13px; font-weight:600;}
+  .user-row .email{font-size:11px; color:var(--text-dim);}
+
+  .main{
+    flex:1; min-width:0;
+    display:flex; flex-direction:column; align-items:center;
+    padding:36px 24px 56px;
+    position:relative;
+  }
+  .main::before{
+    content:"";
+    position:absolute; top:-60px; left:50%; transform:translateX(-50%);
+    width:480px; height:280px;
+    background:radial-gradient(closest-side, rgba(109,94,248,0.12), transparent 75%);
+    pointer-events:none;
+  }
+  .shell{width:100%; max-width:520px; position:relative;}
+
+  .page-head{text-align:center; margin-bottom:28px;}
+  .page-head h1{font-size:26px; font-weight:700; letter-spacing:-.02em; margin-bottom:8px;}
+  .page-head p{color:var(--text-mid); font-size:14px;}
+
+  .steps{
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:28px;
+  }
+  .step-item{
+    display:flex; align-items:center; gap:8px;
+    font-size:13px; font-weight:600; color:var(--text-dim);
+  }
+  .step-item .num{
+    width:24px; height:24px; border-radius:50%;
+    border:1px solid var(--border); background:var(--surface);
+    display:flex; align-items:center; justify-content:center; font-size:12px;
+  }
+  .step-item.active{color:var(--text);}
+  .step-item.active .num{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .step-item.done{color:var(--green);}
+  .step-item.done .num{
+    background:var(--green-soft); border-color:rgba(34,224,143,0.35); color:var(--green);
+  }
+  .step-line{width:40px; height:1px; background:var(--border); margin:0 12px;}
+  .step-line.done{background:rgba(34,224,143,0.45);}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:28px;
+  }
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  .section-label{
+    font-size:12px; font-weight:600; color:var(--text-dim);
+    text-transform:uppercase; letter-spacing:.05em; margin-bottom:10px;
+  }
+
+  .methods{display:flex; flex-direction:column; gap:10px; margin-bottom:22px;}
+  .method{
+    display:flex; align-items:center; gap:14px;
+    width:100%; text-align:left;
+    background:var(--bg); border:1.5px solid var(--border);
+    border-radius:12px; padding:14px 16px; color:inherit;
+    transition:border-color .15s, background .15s;
+  }
+  .method:hover{border-color:#34384a;}
+  .method.selected{border-color:var(--accent); background:var(--accent-soft);}
+  .method.binance.selected{border-color:var(--binance); background:rgba(240,185,11,0.08);}
+  .method-icon{
+    width:40px; height:40px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .method-icon.usdt{background:var(--accent-soft); color:var(--accent);}
+  .method-icon.binance{background:rgba(240,185,11,0.15); color:var(--binance);}
+  .method-icon svg{width:18px; height:18px;}
+  .method-body{flex:1; min-width:0;}
+  .method-body h3{font-size:14.5px; font-weight:700; margin-bottom:2px;}
+  .method-body p{font-size:12.5px; color:var(--text-dim);}
+  .method-tag{
+    font-size:10.5px; font-weight:700; letter-spacing:.03em;
+    padding:4px 8px; border-radius:999px; flex-shrink:0;
+  }
+  .method-tag.auto{background:var(--green-soft); color:var(--green);}
+  .method-tag.manual{background:rgba(240,185,11,0.15); color:var(--binance);}
+
+  .instructions{
+    background:var(--amber-soft); border:1px solid rgba(251,191,36,0.28);
+    border-radius:12px; padding:16px; margin-bottom:20px;
+  }
+  .instructions.binance{
+    background:rgba(240,185,11,0.08); border-color:rgba(240,185,11,0.28);
+  }
+  .instructions-head{
+    display:flex; align-items:center; gap:8px;
+    color:var(--amber); font-size:11.5px; font-weight:700;
+    letter-spacing:.04em; text-transform:uppercase; margin-bottom:10px;
+  }
+  .instructions.binance .instructions-head{color:var(--binance);}
+  .instructions-head svg{width:14px; height:14px;}
+  .instructions ol{margin:0; padding-left:18px;}
+  .instructions li{font-size:13px; color:var(--text); line-height:1.55; margin-bottom:6px;}
+  .instructions li:last-child{margin-bottom:0;}
+  .instructions li b{color:var(--amber);}
+  .instructions.binance li b{color:var(--binance);}
+
+  .faq-block{border-top:1px solid var(--border); padding-top:6px; margin-bottom:22px;}
+  .faq-title{font-size:14px; font-weight:700; margin:8px 0 2px;}
+  .faq-item{border-bottom:1px solid var(--border);}
+  .faq-item:last-child{border-bottom:none;}
+  .faq-q{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    width:100%; background:none; border:none; color:var(--text);
+    padding:13px 0; font-size:13px; font-weight:600; text-align:left;
+  }
+  .faq-q svg{width:14px; height:14px; color:var(--text-dim); flex-shrink:0; transition:transform .15s;}
+  .faq-item.open .faq-q svg{transform:rotate(90deg); color:var(--accent);}
+  .faq-a{display:none; padding:0 0 12px; font-size:12.5px; color:var(--text-mid); line-height:1.6;}
+  .faq-item.open .faq-a{display:block;}
+
+  .primary-btn{
+    width:100%;
+    background:var(--accent); color:#fff; border:none;
+    border-radius:11px; padding:14px;
+    font-size:14.5px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .primary-btn:hover{opacity:.9;}
+  .primary-btn.binance{background:var(--binance); color:#0b0e11;}
+  .primary-btn svg{width:15px; height:15px;}
+
+  .back-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:none; border:none; color:var(--text-mid);
+    font-size:13px; font-weight:600; margin-bottom:18px; padding:0;
+  }
+  .back-btn:hover{color:var(--text);}
+  .back-btn svg{width:14px; height:14px;}
+
+  .panel-title{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom:6px;
+  }
+  .panel-title h2{font-size:16px; font-weight:700;}
+  .panel-sub{font-size:13px; color:var(--text-mid); margin-bottom:20px;}
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:11px; font-weight:700;
+    padding:4px 10px; border-radius:999px;
+  }
+  .badge.auto{background:var(--green-soft); color:var(--green); border:1px solid rgba(34,224,143,0.3);}
+  .badge.auto .dot{width:6px; height:6px; border-radius:50%; background:var(--green);}
+  .badge.manual{background:rgba(240,185,11,0.12); color:var(--binance); border:1px solid rgba(240,185,11,0.3);}
+
+  .addr-label{
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:12px; font-weight:600; color:var(--text-mid); margin-bottom:8px;
+  }
+  .network-pill{
+    font-size:11px; font-weight:700; color:var(--amber);
+    background:var(--amber-soft); border:1px solid rgba(251,191,36,0.25);
+    padding:3px 9px; border-radius:999px;
+  }
+  .addr-row{display:flex; gap:8px; margin-bottom:16px;}
+  .addr-row input{
+    flex:1; background:var(--bg); border:1px solid var(--border);
+    border-radius:10px; padding:13px 14px;
+    color:var(--text); font-size:12px;
+    font-family:'SFMono-Regular', Consolas, monospace;
+  }
+  .copy-btn{
+    width:46px; flex-shrink:0;
+    background:var(--accent); color:#fff; border:none;
+    border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .copy-btn:hover{opacity:.9;}
+  .copy-btn.copied{background:var(--green);}
+  .copy-btn.binance{background:var(--binance); color:#0b0e11;}
+  .copy-btn svg{width:16px; height:16px;}
+
+  /* Waiting / listening state */
+  .waiting{
+    text-align:center;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:28px 20px;
+    margin-bottom:18px;
+  }
+  .pulse{
+    width:56px; height:56px; margin:0 auto 16px;
+    border-radius:50%;
+    background:var(--accent-soft);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+  }
+  .pulse::before{
+    content:"";
+    position:absolute; inset:-6px;
+    border-radius:50%;
+    border:2px solid rgba(109,94,248,0.35);
+    animation:pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse{
+    0%{transform:scale(.85); opacity:1;}
+    100%{transform:scale(1.25); opacity:0;}
+  }
+  .pulse svg{width:24px; height:24px; color:var(--accent); position:relative; z-index:1;}
+  .waiting h3{font-size:15.5px; font-weight:700; margin-bottom:6px;}
+  .waiting p{font-size:13px; color:var(--text-mid); max-width:320px; margin:0 auto; line-height:1.55;}
+  .waiting .range{
+    display:inline-block; margin-top:12px;
+    font-size:12px; color:var(--text-dim);
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:5px 12px;
+  }
+
+  .detect-note{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--blue-soft); border:1px solid rgba(79,168,240,0.22);
+    border-radius:11px; padding:12px 14px;
+  }
+  .detect-note svg{width:16px; height:16px; color:var(--blue); flex-shrink:0; margin-top:2px;}
+  .detect-note p{font-size:12.5px; color:var(--text-mid); line-height:1.55; margin:0;}
+  .detect-note strong{color:var(--text);}
+
+  .pay-id-box{
+    text-align:center;
+    background:var(--bg); border:1px dashed rgba(240,185,11,0.4);
+    border-radius:12px; padding:18px; margin-bottom:14px;
+  }
+  .pay-id-box .label{
+    font-size:11px; color:var(--text-dim);
+    text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px;
+  }
+  .pay-id-box .id{font-size:24px; font-weight:800; color:var(--binance); letter-spacing:.03em;}
+
+  .field-label{font-size:12.5px; font-weight:600; color:var(--text-mid); margin-bottom:8px;}
+  .tx-input{
+    width:100%; background:var(--bg); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; margin-bottom:14px;
+    color:var(--text); font-size:13.5px; font-family:var(--font); outline:none;
+  }
+  .tx-input:focus{border-color:var(--binance);}
+  .tx-input::placeholder{color:var(--text-dim);}
+
+  .method-info{display:none;}
+  .method-info.show{display:block;}
+
+  @media (max-width:900px){
+    /* sidebar visibility handled by shell.css */
+    .main{padding:24px 16px 40px;}
+  }
+</style>
+
+
+
+<style id="shell-overrides">
+  body.app-shell { display: flex !important; margin: 0; min-height: 100vh; }
+  body.app-shell > .sidebar {
+    display: flex !important;
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    width: var(--sidebar-width, 232px) !important;
+  }
+  body.app-shell > .content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  body.app-shell .content > .main, body.app-shell main.main { flex: 1; }
+  body.app-shell .navbar-custom,
+  body.app-shell #mobileNav,
+  body.app-shell .content > .topnav,
+  body.app-shell .legacy-topnav { display: none !important; }
+  @media (max-width: 960px) {
+    body.app-shell > .sidebar {
+      position: fixed !important;
+      transform: translateX(-100%);
+      transition: transform .2s ease;
+    }
+    body.sidebar-open.app-shell > .sidebar { transform: translateX(0); }
+  }
+</style>
+</head>
+<body class="app-shell">
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="home.html">
+    <div class="brand-icon">S</div>
+    <div>
+      <div class="brand-name">StackVault</div>
+      <div class="brand-sub">Digital Subscriptions &amp; Keys</div>
+    </div>
+  </a>
+
+  <nav class="nav">
+    <a class="nav-item" href="products.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+      Shop Catalog
+    </a>
+    <a class="nav-item" href="my_orders.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+      My Orders
+    </a>
+    <a class="nav-item active" href="top_up_balance.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Top Up Balance
+    </a>
+    <a class="nav-item" href="my_account.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      My Account
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Telegram Seller
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>
+      Support
+    </a>
+  </nav>
+
+  <div class="sidebar-spacer"></div>
+
+  <a class="balance-box" href="top_up_balance.html">
+    <div>
+      <div class="balance-label">Your Balance</div>
+      <div class="balance-amount">$0.00 <span>USD</span></div>
+    </div>
+    <span class="add-btn">+</span>
+  </a>
+
+  <div class="help-box">
+    <p>Need help? Our support team is here 24/7.</p>
+    <a class="contact-btn" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 18v-6a9 9 0 0118 0v6"/>
+        <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/>
+      </svg>
+      Contact Support
+    </a>
+  </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-backdrop></div>
+<div class="content">
+<header class="topbar">
+  <button class="menu-toggle" type="button" aria-label="Open menu" data-toggle-sidebar>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="topbar-left">
+    <h1>Top Up Balance</h1>
+    <div class="breadcrumb"><a href="home.html">Home</a> &nbsp;&gt;&nbsp; <span class="current">Top Up</span></div>
+  </div>
+  <div class="topbar-right">
+    <div class="user-menu">
+      <a class="top-user" href="my_account.html" title="Account menu">
+        <div class="avatar">T</div>
+        <span>test</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </a>
+      <div class="user-dropdown">
+        <a href="my_account.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          My Account
+        </a>
+        <a href="login.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="main">
+<div class="shell">
+    
+
+    <div class="steps">
+      <div class="step-item active" id="stepInd1">
+        <span class="num">1</span>
+        <span>Method</span>
+      </div>
+      <div class="step-line" id="stepLine"></div>
+      <div class="step-item" id="stepInd2">
+        <span class="num">2</span>
+        <span id="step2Label">Deposit</span>
+      </div>
+    </div>
+
+    <!-- ========== STEP 1 ========== -->
+    <div class="screen active" id="step1">
+      <div class="card">
+        <div class="section-label">Choose method</div>
+        <div class="methods">
+          <button class="method selected" type="button" data-method="usdt" id="methodUsdt">
+            <div class="method-icon usdt">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>
+            </div>
+            <div class="method-body">
+              <h3>USDT · BEP20</h3>
+              <p>Send any amount — detected automatically</p>
+            </div>
+            <span class="method-tag auto">AUTO</span>
+          </button>
+          <button class="method binance" type="button" data-method="binance" id="methodBinance">
+            <div class="method-icon binance">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.5 7H22l-6 5 2.5 7L12 16l-6.5 5L8 14l-6-5h7.5z"/></svg>
+            </div>
+            <div class="method-body">
+              <h3>Binance Pay</h3>
+              <p>Pay then submit your order ID</p>
+            </div>
+            <span class="method-tag manual">MANUAL</span>
+          </button>
+        </div>
+
+        <!-- USDT instructions + FAQ -->
+        <div class="method-info show" id="infoUsdt">
+          <div class="instructions">
+            <div class="instructions-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <path d="M12 9v4M12 17h.01"/>
+              </svg>
+              Important instructions
+            </div>
+            <ol>
+              <li>Send <b>USDT on BEP20 (Binance Smart Chain)</b> only.</li>
+              <li>Do <b>not</b> use ERC20, TRC20, Solana, or any other network.</li>
+              <li>Wrong-network transfers are <b>permanently lost</b>.</li>
+              <li>Send any amount from <b>$0.10 to $10,000</b> — our backend matches it automatically.</li>
+              <li>No proof needed. Balance updates after <b>15 confirmations</b>.</li>
+            </ol>
+          </div>
+
+          <div class="faq-block">
+            <div class="faq-title">FAQ</div>
+            <div class="faq-item open">
+              <button class="faq-q" type="button">
+                How long does a top-up take?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+              <div class="faq-a">Usually a few minutes, once your transaction reaches 15 confirmations on BEP20.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" type="button">
+                Which network should I use?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+              <div class="faq-a">Only BEP20 (Binance Smart Chain). Any other network results in a permanent loss of funds.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" type="button">
+                Didn't receive your top-up?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+              <div class="faq-a">Contact support with your transaction hash and we'll verify and credit it manually.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Binance instructions + FAQ -->
+        <div class="method-info" id="infoBinance">
+          <div class="instructions binance">
+            <div class="instructions-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <path d="M12 9v4M12 17h.01"/>
+              </svg>
+              Important instructions
+            </div>
+            <ol>
+              <li>Open Binance → <b>Pay</b> → Send to our Pay ID.</li>
+              <li>Send any amount from <b>$0.10 to $10,000</b>.</li>
+              <li>Do <b>not</b> use a normal crypto withdraw to a wallet address.</li>
+              <li>After paying, submit your <b>order ID</b> so we can credit you manually.</li>
+            </ol>
+          </div>
+
+          <div class="faq-block">
+            <div class="faq-title">FAQ</div>
+            <div class="faq-item open">
+              <button class="faq-q" type="button">
+                How long does a top-up take?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+              <div class="faq-a">Usually a few minutes after you submit your Binance Pay order ID for manual review.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" type="button">
+                Which network should I use?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+              <div class="faq-a">Use Binance Pay inside the Binance app. Do not send an on-chain transfer to a wallet address.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" type="button">
+                Didn't receive your top-up?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+              <div class="faq-a">Contact support with your Binance Pay order ID and we'll verify and credit it manually.</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="primary-btn" type="button" id="continueBtn">
+          Continue
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ========== STEP 2: USDT waiting ========== -->
+    <div class="screen" id="step2Usdt">
+      <button class="back-btn" type="button" data-back>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 6l-6 6 6 6"/></svg>
+        Change method
+      </button>
+
+      <div class="card">
+        <div class="panel-title">
+          <h2>Send USDT</h2>
+          <span class="badge auto"><span class="dot"></span> Listening</span>
+        </div>
+        <p class="panel-sub">Copy the address, send USDT on BEP20, then wait — we detect it automatically.</p>
+
+        <div class="addr-label">
+          Your BEP20 deposit address
+          <span class="network-pill">BEP20 only</span>
+        </div>
+        <div class="addr-row">
+          <input id="depositAddr" value="0xa5401DD0acb5B28f1f81Eaf01eE0Ba9506a4F5Dd" readonly>
+          <button class="copy-btn" type="button" id="copyAddr" aria-label="Copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="waiting">
+          <div class="pulse">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/>
+            </svg>
+          </div>
+          <h3>Waiting for your transaction</h3>
+          <p>Our backend is watching this address. Once your transfer reaches 15 confirmations, your balance updates automatically.</p>
+          <span class="range">Accepted · $0.10 – $10,000</span>
+        </div>
+
+        <div class="detect-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+          </svg>
+          <p><strong>No form to submit.</strong> Leave this page open or come back later — detection happens on the server.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== STEP 2: Binance submit ========== -->
+    <div class="screen" id="step2Binance">
+      <button class="back-btn" type="button" data-back>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 6l-6 6 6 6"/></svg>
+        Change method
+      </button>
+
+      <div class="card">
+        <div class="panel-title">
+          <h2>Submit Binance Pay</h2>
+          <span class="badge manual">Manual review</span>
+        </div>
+        <p class="panel-sub">Pay via Binance Pay, then enter your order ID so we can credit you.</p>
+
+        <div class="pay-id-box">
+          <div class="label">Our Binance Pay ID</div>
+          <div class="id" id="binancePayId">123456789</div>
+        </div>
+        <button class="copy-btn binance" type="button" id="copyPayId" style="width:100%; height:44px; gap:8px; font-weight:700; font-size:13.5px; margin-bottom:20px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+          Copy Pay ID
+        </button>
+
+        <div class="field-label">Binance Pay order ID</div>
+        <input class="tx-input" type="text" id="binanceOrderId" placeholder="Paste your order ID after paying">
+
+        <button class="primary-btn binance" type="button">Submit for review</button>
+      </div>
+    </div>
+  </div>
+<script>
+  let method = 'usdt';
+  const step1 = document.getElementById('step1');
+  const step2Usdt = document.getElementById('step2Usdt');
+  const step2Binance = document.getElementById('step2Binance');
+  const stepInd1 = document.getElementById('stepInd1');
+  const stepInd2 = document.getElementById('stepInd2');
+  const stepLine = document.getElementById('stepLine');
+  const step2Label = document.getElementById('step2Label');
+  const continueBtn = document.getElementById('continueBtn');
+  const infoUsdt = document.getElementById('infoUsdt');
+  const infoBinance = document.getElementById('infoBinance');
+
+  function setMethod(next) {
+    method = next;
+    document.getElementById('methodUsdt').classList.toggle('selected', next === 'usdt');
+    document.getElementById('methodBinance').classList.toggle('selected', next === 'binance');
+    infoUsdt.classList.toggle('show', next === 'usdt');
+    infoBinance.classList.toggle('show', next === 'binance');
+    continueBtn.classList.toggle('binance', next === 'binance');
+    step2Label.textContent = next === 'usdt' ? 'Waiting' : 'Submit';
+  }
+
+  document.getElementById('methodUsdt').addEventListener('click', () => setMethod('usdt'));
+  document.getElementById('methodBinance').addEventListener('click', () => setMethod('binance'));
+
+  function goStep1() {
+    step1.classList.add('active');
+    step2Usdt.classList.remove('active');
+    step2Binance.classList.remove('active');
+    stepInd1.classList.add('active');
+    stepInd1.classList.remove('done');
+    stepInd2.classList.remove('active');
+    stepLine.classList.remove('done');
+  }
+
+  function goStep2() {
+    step1.classList.remove('active');
+    step2Usdt.classList.toggle('active', method === 'usdt');
+    step2Binance.classList.toggle('active', method === 'binance');
+    stepInd1.classList.remove('active');
+    stepInd1.classList.add('done');
+    stepInd2.classList.add('active');
+    stepLine.classList.add('done');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  continueBtn.addEventListener('click', goStep2);
+  document.querySelectorAll('[data-back]').forEach(btn => btn.addEventListener('click', goStep1));
+
+  async function copyText(btn, text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.classList.add('copied');
+      setTimeout(() => btn.classList.remove('copied'), 1500);
+    } catch (e) {}
+  }
+  document.getElementById('copyAddr').addEventListener('click', function () {
+    copyText(this, document.getElementById('depositAddr').value);
+  });
+  document.getElementById('copyPayId').addEventListener('click', function () {
+    copyText(this, document.getElementById('binancePayId').textContent);
+  });
+
+  document.querySelectorAll('.faq-item').forEach(item => {
+    item.querySelector('.faq-q').addEventListener('click', () => item.classList.toggle('open'));
+  });
+</script>
+</main>
+</div>
+
+<script>
+(function () {
+  var toggle = document.querySelector("[data-toggle-sidebar]");
+  var backdrop = document.querySelector("[data-sidebar-backdrop]");
+  function close() { document.body.classList.remove("sidebar-open"); }
+  if (toggle) toggle.addEventListener("click", function () {
+    document.body.classList.toggle("sidebar-open");
+  });
+  if (backdrop) backdrop.addEventListener("click", close);
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") close();
+  });
+})();
+</script>
+
+</body>
+</html>

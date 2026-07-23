@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StackVault — Order History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/shell.css">
+<style>
+  :root{
+    --bg:#08090c;
+    --surface:#111319;
+    --surface-2:#161922;
+    --border:#22252e;
+    --sidebar:#0c0e12;
+    --accent:#6d5ef8;
+    --accent-2:#5a4ce0;
+    --accent-soft:rgba(109,94,248,0.12);
+    --green:#22e08f;
+    --text:#f4f4f6;
+    --text-mid:#9a9ca6;
+    --text-dim:#65676f;
+    --font:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  /* body layout owned by shell.css */
+        /* \1\2\3 */
+  a{color:inherit; text-decoration:none;}
+  button{font-family:var(--font); cursor:pointer;}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:240px;
+    background:var(--sidebar);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    padding:20px 16px;
+    flex-shrink:0;
+  }
+  .brand{display:flex; align-items:center; gap:11px; padding:4px 4px 24px;}
+  .brand-icon{
+    width:36px; height:36px; border-radius:10px;
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:16px; flex-shrink:0;
+  }
+  .brand-name{font-weight:700; font-size:15px; line-height:1.2;}
+  .brand-sub{font-size:11px; color:var(--text-dim);}
+
+  .nav{display:flex; flex-direction:column; gap:3px;}
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding:10px 11px; border-radius:9px;
+    font-size:13.5px; color:var(--text-mid);
+  }
+  .nav-item svg{width:17px; height:17px; flex-shrink:0;}
+  .nav-item:hover{background:var(--surface-2); color:var(--text);}
+  .nav-item.active{background:var(--accent-soft); color:#b3a9fb;}
+
+  .sidebar-spacer{flex:1;}
+
+  .balance-box{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:12px;
+  }
+  .balance-box-top{display:flex; align-items:center; justify-content:space-between;}
+  .balance-label{
+    font-size:10px; color:var(--text-dim);
+    letter-spacing:.06em; margin-bottom:4px;
+    text-transform:uppercase;
+  }
+  .balance-amount{color:var(--green); font-weight:700; font-size:17px;}
+  .balance-amount span{
+    color:var(--text-dim); font-size:11.5px; font-weight:500; margin-left:3px;
+  }
+  .add-btn{
+    width:28px; height:28px; border-radius:8px;
+    background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:600; border:none; flex-shrink:0;
+  }
+  .add-btn:hover{opacity:.9;}
+
+  .user-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:9px 12px; margin-bottom:12px; cursor:pointer;
+  }
+  .user-row-left{display:flex; align-items:center; gap:10px;}
+  .user-avatar{
+    width:28px; height:28px; border-radius:8px;
+    background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700; flex-shrink:0;
+  }
+  .user-row span.name{font-size:13px; font-weight:600;}
+  .user-row svg.chevron{width:13px; height:13px; color:var(--text-dim);}
+
+  .logout-row{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:12px;
+    border:1px solid var(--border); color:var(--text-mid);
+    font-size:13px; cursor:pointer; margin-bottom:16px;
+  }
+  .logout-row:hover{background:var(--surface-2); color:var(--text);}
+  .logout-row svg{width:15px; height:15px;}
+
+  .trust-footer-item{
+    display:flex; gap:10px; padding:12px 0;
+    border-top:1px solid var(--border);
+  }
+  .trust-footer-icon{
+    width:34px; height:34px; border-radius:9px;
+    background:var(--accent-soft); color:#b3a9fb;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .trust-footer-icon svg{width:16px; height:16px;}
+  .trust-footer-item h5{font-size:12px; font-weight:700; margin:0 0 3px;}
+  .trust-footer-item p{font-size:11px; color:var(--text-dim); margin:0; line-height:1.5;}
+
+  /* ---------- Content ---------- */
+  .content{flex:1; display:flex; flex-direction:column; min-width:0;}
+
+  .topnav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 32px; border-bottom:1px solid var(--border);
+  }
+  .top-tabs{display:flex; gap:6px;}
+  .top-tab{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 14px; color:var(--text-mid);
+    font-size:13.5px; font-weight:600;
+    border-bottom:2px solid transparent;
+  }
+  .top-tab svg{width:16px; height:16px;}
+  .top-tab.active{color:#b3a9fb; border-bottom-color:var(--accent);}
+
+  .top-right{display:flex; align-items:center; gap:12px;}
+  .top-balance{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:7px 16px; text-align:right;
+  }
+  .top-balance .balance-label{text-align:right; margin-bottom:0;}
+  .top-balance .balance-amount{font-size:14.5px;}
+
+  .top-user{
+    display:flex; align-items:center; gap:8px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:6px 12px 6px 6px; cursor:pointer;
+  }
+  .top-user .avatar{
+    width:26px; height:26px; border-radius:8px;
+    background:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:700;
+  }
+  .top-user span{font-size:13px;}
+  .top-user svg{width:12px; height:12px; color:var(--text-dim);}
+
+  .icon-square{
+    width:36px; height:36px; border-radius:10px;
+    background:var(--surface); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-dim); cursor:pointer;
+  }
+  .icon-square svg{width:15px; height:15px;}
+  .icon-square:hover{background:var(--surface-2); color:var(--text);}
+
+  .main{
+    padding:26px 32px 40px;
+    display:flex; flex-direction:column; flex:1;
+  }
+
+  .breadcrumb{font-size:12.5px; color:var(--text-dim); margin-bottom:6px;}
+  .breadcrumb a{color:var(--text-dim);}
+  .breadcrumb .current{color:#b3a9fb;}
+
+  h1{font-size:26px; font-weight:700; margin:0 0 6px;}
+  .page-sub{color:var(--text-mid); font-size:13.5px; margin:0 0 24px;}
+
+  /* ---------- Empty state ---------- */
+  .empty-panel{
+    flex:1;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    text-align:center;
+    padding:60px 20px;
+    position:relative; overflow:hidden;
+    min-height:420px;
+  }
+  .empty-icon-wrap{
+    position:relative;
+    width:120px; height:120px;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:22px;
+  }
+  .empty-glow{
+    position:absolute;
+    width:130px; height:130px; border-radius:50%;
+    background:radial-gradient(circle, rgba(109,94,248,0.18) 0%, transparent 70%);
+  }
+  .empty-icon{
+    width:62px; height:62px; color:var(--accent);
+    position:relative; z-index:1;
+  }
+  .sparkle{position:absolute; color:var(--accent); opacity:.7;}
+
+  .empty-panel h2{font-size:19px; font-weight:700; margin:0 0 6px;}
+  .empty-panel p{color:var(--text-mid); font-size:13.5px; margin:0 0 22px;}
+
+  .browse-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--accent); color:#fff;
+    border:none; padding:12px 22px; border-radius:10px;
+    font-size:13.5px; font-weight:600;
+    transition:opacity .15s;
+  }
+  .browse-btn:hover{opacity:.9;}
+
+  @media (max-width:960px){
+    /* sidebar visibility handled by shell.css */
+    .top-tabs{display:none;}
+    .main{padding:20px 16px 32px;}
+  }
+</style>
+
+
+
+<style id="shell-overrides">
+  body.app-shell { display: flex !important; margin: 0; min-height: 100vh; }
+  body.app-shell > .sidebar {
+    display: flex !important;
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    width: var(--sidebar-width, 232px) !important;
+  }
+  body.app-shell > .content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  body.app-shell .content > .main, body.app-shell main.main { flex: 1; }
+  body.app-shell .navbar-custom,
+  body.app-shell #mobileNav,
+  body.app-shell .content > .topnav,
+  body.app-shell .legacy-topnav { display: none !important; }
+  @media (max-width: 960px) {
+    body.app-shell > .sidebar {
+      position: fixed !important;
+      transform: translateX(-100%);
+      transition: transform .2s ease;
+    }
+    body.sidebar-open.app-shell > .sidebar { transform: translateX(0); }
+  }
+</style>
+</head>
+<body class="app-shell">
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="home.html">
+    <div class="brand-icon">S</div>
+    <div>
+      <div class="brand-name">StackVault</div>
+      <div class="brand-sub">Digital Subscriptions &amp; Keys</div>
+    </div>
+  </a>
+
+  <nav class="nav">
+    <a class="nav-item" href="products.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 9v11"/></svg>
+      Shop Catalog
+    </a>
+    <a class="nav-item active" href="my_orders.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5"/></svg>
+      My Orders
+    </a>
+    <a class="nav-item" href="top_up_balance.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Top Up Balance
+    </a>
+    <a class="nav-item" href="my_account.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      My Account
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Telegram Seller
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>
+      Support
+    </a>
+  </nav>
+
+  <div class="sidebar-spacer"></div>
+
+  <a class="balance-box" href="top_up_balance.html">
+    <div>
+      <div class="balance-label">Your Balance</div>
+      <div class="balance-amount">$0.00 <span>USD</span></div>
+    </div>
+    <span class="add-btn">+</span>
+  </a>
+
+  <div class="help-box">
+    <p>Need help? Our support team is here 24/7.</p>
+    <a class="contact-btn" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 18v-6a9 9 0 0118 0v6"/>
+        <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/>
+      </svg>
+      Contact Support
+    </a>
+  </div>
+</aside>
+<div class="sidebar-backdrop" data-sidebar-backdrop></div>
+<div class="content">
+<header class="topbar">
+  <button class="menu-toggle" type="button" aria-label="Open menu" data-toggle-sidebar>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+  </button>
+  <div class="topbar-left">
+    <h1>Order History</h1>
+    <div class="breadcrumb"><a href="home.html">Home</a> &nbsp;&gt;&nbsp; <span class="current">My Orders</span></div>
+  </div>
+  <div class="topbar-right">
+    <div class="user-menu">
+      <a class="top-user" href="my_account.html" title="Account menu">
+        <div class="avatar">T</div>
+        <span>test</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </a>
+      <div class="user-dropdown">
+        <a href="my_account.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          My Account
+        </a>
+        <a href="login.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          Logout
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="main">
+<p class="page-sub" style="color:var(--text-dim);font-size:13.5px;margin:0 0 24px;">View your previous purchases and re-download license credentials anytime.</p>
+<div class="empty-panel">
+      <div class="empty-icon-wrap">
+        <div class="empty-glow"></div>
+        <svg class="sparkle" style="top:6px; left:14px;" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0l2 10 10 2-10 2-2 10-2-10-10-2 10-2z"/>
+        </svg>
+        <svg class="sparkle" style="bottom:10px; right:10px;" width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0l2 10 10 2-10 2-2 10-2-10-10-2 10-2z"/>
+        </svg>
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="6" y="4" width="12" height="17" rx="2"/>
+          <path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/>
+          <path d="M9 10h6M9 14h4"/>
+          <circle cx="16" cy="17" r="4" fill="var(--surface)"/>
+          <path d="M18.5 19.5L20 21" stroke-width="1.8"/>
+        </svg>
+      </div>
+      <h2>No Orders Found</h2>
+      <p>You haven't made any purchases yet.</p>
+      <a class="browse-btn" href="products.html">
+        Browse Shop Catalog
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M9 6l6 6-6 6"/>
+        </svg>
+      </a>
+    </div>
+</main>
+</div>
+
+<script>
+(function () {
+  var toggle = document.querySelector("[data-toggle-sidebar]");
+  var backdrop = document.querySelector("[data-sidebar-backdrop]");
+  function close() { document.body.classList.remove("sidebar-open"); }
+  if (toggle) toggle.addEventListener("click", function () {
+    document.body.classList.toggle("sidebar-open");
+  });
+  if (backdrop) backdrop.addEventListener("click", close);
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") close();
+  });
+})();
+</script>
+
+</body>
+</html>
