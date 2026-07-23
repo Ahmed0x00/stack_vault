@@ -5,10 +5,22 @@ const { centsToDollars } = require('../config/pricing');
 
 const router = express.Router();
 
+const { getDepositAddress } = require('../services/wallet');
+
 // GET /api/balance — Get balance & transaction history
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const user = await queryOne('SELECT balance, deposit_address FROM users WHERE id = ?', [req.user.id]);
+    let user = await queryOne('SELECT id, telegram_id, balance, deposit_address FROM users WHERE id = ?', [req.user.id]);
+    
+    if (user && !user.deposit_address) {
+      try {
+        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
+        const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+        user.deposit_address = getDepositAddress(identifier, masterSecret);
+        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+      } catch (e) {}
+    }
+
     const transactions = await query(
       'SELECT id, type, amount, tx_hash, description, status, created_at FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 30',
       [req.user.id]
@@ -40,7 +52,17 @@ router.get('/', authenticateToken, async (req, res) => {
 // GET /api/balance/deposit-info — Get USDT deposit address & Binance Pay details
 router.get('/deposit-info', authenticateToken, async (req, res) => {
   try {
-    const user = await queryOne('SELECT deposit_address FROM users WHERE id = ?', [req.user.id]);
+    let user = await queryOne('SELECT id, telegram_id, deposit_address FROM users WHERE id = ?', [req.user.id]);
+    
+    if (user && !user.deposit_address) {
+      try {
+        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
+        const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+        user.deposit_address = getDepositAddress(identifier, masterSecret);
+        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+      } catch (e) {}
+    }
+
     const binancePayId = process.env.BINANCE_PAY_ID || '1120547012';
 
     res.json({

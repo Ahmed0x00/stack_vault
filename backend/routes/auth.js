@@ -37,7 +37,9 @@ router.post('/register', async (req, res) => {
     let depositAddress = null;
     try {
       const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-      depositAddress = getDepositAddress(userId, masterSecret);
+      // New users from email don't have telegram_id yet, use uid_
+      const identifier = `uid_${userId}`;
+      depositAddress = getDepositAddress(identifier, masterSecret);
       await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
     } catch (err) {
       console.error('Error generating deposit address:', err);
@@ -91,7 +93,8 @@ router.post('/login', async (req, res) => {
     if (!user.deposit_address) {
       try {
         const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-        user.deposit_address = getDepositAddress(user.id, masterSecret);
+        const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+        user.deposit_address = getDepositAddress(identifier, masterSecret);
         await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
       } catch (e) {}
     }
@@ -204,12 +207,13 @@ router.get('/telegram-callback', async (req, res) => {
 
     // Decode the ID token (trusted — received directly from Telegram over HTTPS with our client_secret)
     const decoded = jwt.decode(id_token);
+    console.log("DECODED JWT:", decoded);
 
-    if (!decoded || !decoded.sub) {
+    if (!decoded || (!decoded.sub && !decoded.id)) {
       return res.redirect(`${FRONTEND_URL}/login.html?tg_error=${encodeURIComponent('Invalid ID token')}`);
     }
 
-    const tgId = Number(decoded.sub);
+    const tgId = String(decoded.id || decoded.sub);
     const tgUsername = decoded.username || decoded.first_name || `tg_${tgId}`;
 
     // ─── LINK MODE: Link Telegram to existing account ───
@@ -246,7 +250,7 @@ router.get('/telegram-callback', async (req, res) => {
 
       try {
         const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-        const depositAddress = getDepositAddress(userId, masterSecret);
+        const depositAddress = getDepositAddress(tgId.toString(), masterSecret);
         await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
       } catch (err) {}
 
@@ -255,7 +259,8 @@ router.get('/telegram-callback', async (req, res) => {
       if (!user.deposit_address) {
         try {
           const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
-          user.deposit_address = getDepositAddress(user.id, masterSecret);
+          const identifier = user.telegram_id ? user.telegram_id.toString() : `uid_${user.id}`;
+          user.deposit_address = getDepositAddress(identifier, masterSecret);
           await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
         } catch (e) {}
       }
@@ -295,13 +300,13 @@ router.post('/link-telegram', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'Telegram ID is required' });
     }
 
-    const existing = await queryOne('SELECT id FROM users WHERE telegram_id = ? AND id != ?', [Number(tgId), req.user.id]);
+    const existing = await queryOne('SELECT id FROM users WHERE telegram_id = ? AND id != ?', [String(tgId), req.user.id]);
     if (existing) {
       return res.status(400).json({ error: 'This Telegram account is already linked to another user' });
     }
 
-    await query('UPDATE users SET telegram_id = ? WHERE id = ?', [Number(tgId), req.user.id]);
-    res.json({ message: 'Telegram account linked successfully', telegram_id: Number(tgId) });
+    await query('UPDATE users SET telegram_id = ? WHERE id = ?', [String(tgId), req.user.id]);
+    res.json({ message: 'Telegram account linked successfully', telegram_id: String(tgId) });
   } catch (error) {
     console.error('Link Telegram error:', error);
     res.status(500).json({ error: 'Failed to link Telegram account' });

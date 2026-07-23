@@ -785,6 +785,7 @@
 })();
 </script>
 
+<script src="js/ui.js"></script>
 <script>
 const API_BASE = 'https://decohomz.com/sv-api';
 
@@ -987,7 +988,7 @@ async function loadProduct() {
       window.location.href = 'products.html';
       return;
     }
-    alert((err && err.error) || 'Server unavailable, try again');
+    svToast((err && err.error) || 'Server unavailable, try again', 'error');
   }
 }
 
@@ -999,16 +1000,22 @@ if (buyBtn) {
       return;
     }
     if (!currentProduct) {
-      alert('Product still loading, please wait.');
+      svToast('Product still loading, please wait.', 'warning');
       return;
     }
     if (!currentProduct.inStock) {
-      alert('This product is currently out of stock.');
+      svToast('This product is currently out of stock.', 'warning');
       return;
     }
 
     const total = (currentProduct.price * qty).toFixed(2);
-    if (!confirm(`Buy ${qty}x ${currentProduct.name} for $${total}?`)) return;
+    const confirmed = await svConfirm({
+      title: 'Confirm purchase',
+      message: `Buy ${qty}x ${currentProduct.name} for $${total}?`,
+      confirmText: 'Buy now',
+      cancelText: 'Cancel'
+    });
+    if (!confirmed) return;
 
     const originalHTML = buyBtn.innerHTML;
     buyBtn.disabled = true;
@@ -1031,11 +1038,15 @@ if (buyBtn) {
     } catch (err) {
       if (err && err.status === 402) {
         const needed = err.needed || '?';
-        if (confirm(`Insufficient balance. You need $${needed} more. Top up now?`)) {
-          window.location.href = 'top_up_balance.html';
-        }
+        const topUp = await svConfirm({
+          title: 'Insufficient balance',
+          message: `You need $${needed} more to complete this purchase.`,
+          confirmText: 'Top up',
+          cancelText: 'Not now'
+        });
+        if (topUp) window.location.href = 'top_up_balance.html';
       } else {
-        alert((err && err.error) || 'Server unavailable, try again');
+        svToast((err && err.error) || 'Server unavailable, try again', 'error');
       }
     } finally {
       buyBtn.disabled = false;

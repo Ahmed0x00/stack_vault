@@ -1436,6 +1436,7 @@
 })();
 </script>
 
+<script src="js/ui.js"></script>
 <script>
 const API_BASE = 'https://decohomz.com/sv-api';
 
@@ -1559,7 +1560,7 @@ async function downloadOrder(orderId) {
       return;
     }
     if (!response.ok) {
-      alert('Download failed. Please try again.');
+      svToast('Download failed. Please try again.', 'error');
       return;
     }
     const blob = await response.blob();
@@ -1571,7 +1572,7 @@ async function downloadOrder(orderId) {
     a.click();
     URL.revokeObjectURL(url);
   } catch (err) {
-    alert('Server unavailable, try again');
+    svToast('Server unavailable, try again', 'error');
   }
 }
 

@@ -601,6 +601,7 @@
 })();
 </script>
 
+<script src="js/ui.js"></script>
 <script>
 const API_BASE = 'https://decohomz.com/sv-api';
 
@@ -798,10 +799,10 @@ async function loadAccount() {
         }
       } catch (e) {}
       window.history.replaceState({}, '', 'my_account.html');
-      alert('Telegram account linked successfully!');
+      svToast('Telegram account linked successfully!', 'success');
     }
     if (params.get('tg_error')) {
-      alert(decodeURIComponent(params.get('tg_error')));
+      svToast(decodeURIComponent(params.get('tg_error')), 'error');
       window.history.replaceState({}, '', 'my_account.html');
     }
 
@@ -826,7 +827,7 @@ async function loadAccount() {
       linkBtn.addEventListener('click', async () => {
         const id = (telegramInput && telegramInput.value.trim()) || '';
         if (!id || !/^\d+$/.test(id)) {
-          alert('Enter a valid numeric Telegram user ID');
+          svToast('Enter a valid numeric Telegram user ID', 'warning');
           return;
         }
         const original = linkBtn.textContent;
@@ -844,16 +845,16 @@ async function loadAccount() {
             currentUser.telegram_id = Number(id);
             localStorage.setItem('sv_user', JSON.stringify(currentUser));
           }
-          alert((res && res.message) || 'Telegram account linked successfully');
+          svToast((res && res.message) || 'Telegram account linked successfully', 'success');
         } catch (err) {
-          alert((err && err.error) || 'Server unavailable, try again');
+          svToast((err && err.error) || 'Server unavailable, try again', 'error');
           linkBtn.disabled = false;
           linkBtn.textContent = original;
         }
       });
     }
   } catch (err) {
-    alert((err && err.error) || 'Server unavailable, try again');
+    svToast((err && err.error) || 'Server unavailable, try again', 'error');
   }
 }
 
