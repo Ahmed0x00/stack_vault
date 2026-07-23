@@ -1664,7 +1664,7 @@ function renderOrders() {
       <tr>
         <td>
           <div class="prod-cell">
-            <div class="prod-icon" style="background:${getColor(order.productName)};">${getInitial(order.productName)}</div>
+            ${getProductImageHtml(order.productName, 'all', `<div class="prod-icon" style="background:${getColor(order.productName)};">${getInitial(order.productName)}</div>`).replace('product-thumb', 'prod-icon')}
             <div>
               <div class="prod-name">${(order.productName || '').replace(/</g, '&lt;')}</div>
               <div class="prod-cat">Qty: ${order.quantity || 1}</div>
@@ -1768,6 +1768,7 @@ wireShellAuth();
 loadOrders();
 </script>
 
+  <script src="js/brands.js"></script>
 </body>
 
 </html>

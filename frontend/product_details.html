@@ -951,6 +951,18 @@ async function loadProduct() {
 
     const titleEl = document.querySelector('.product-title');
     if (titleEl) titleEl.textContent = p.name;
+    
+    const iconContainer = document.querySelector('.product-icon');
+    if (iconContainer) {
+      const brandLogoUrl = getBrandLogoUrl(p.name);
+      if (brandLogoUrl) {
+        iconContainer.innerHTML = `<img src="${brandLogoUrl}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;border-radius:12px;">`;
+        iconContainer.style.background = '#ffffff';
+      } else {
+        iconContainer.innerHTML = `<i class="${getCategoryIcon(p.category)}" style="font-size:32px;color:#fff;"></i>`;
+        iconContainer.style.background = getCategoryColor(p.category);
+      }
+    }
 
     const badgeSoft = document.querySelector('.badge-soft');
     if (badgeSoft) badgeSoft.textContent = p.categoryName || p.category || '';
@@ -1069,6 +1081,7 @@ wireShellAuth();
 loadProduct();
 </script>
 
+  <script src="js/brands.js"></script>
 </body>
 
 </html>

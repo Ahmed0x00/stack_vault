@@ -1071,7 +1071,7 @@ function renderCard(product) {
     <div class="col-12 col-md-6 col-xl-4">
       <div class="product-card">
         <div class="card-top">
-          <div class="product-thumb" style="background:${getCategoryColor(product.category)}"><i class="${getCategoryIcon(product.category)}"></i></div>
+        ${getProductImageHtml(product.name, product.category, `<div class="product-thumb" style="background:${getCategoryColor(product.category)}"><i class="${getCategoryIcon(product.category)}"></i></div>`)}
           <div class="flex-grow-1">
             <div class="d-flex justify-content-between gap-2">
               <div>
@@ -1163,6 +1163,7 @@ wireShellAuth();
 loadProducts();
 </script>
 
+  <script src="js/brands.js"></script>
 </body>
 
 </html>
