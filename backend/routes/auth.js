@@ -234,6 +234,80 @@ router.post('/telegram-login', async (req, res) => {
   }
 });
 
+// GET /api/auth/telegram-callback (data-auth-url redirect mode)
+router.get('/telegram-callback', async (req, res) => {
+  try {
+    const telegramData = req.query;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+    if (!telegramData || !telegramData.id) {
+      return res.redirect('https://stackvault.shop/login.html?error=missing_telegram_data');
+    }
+
+    if (telegramData.hash && botToken) {
+      const isValid = verifyTelegramAuth(telegramData, botToken);
+      if (!isValid) {
+        return res.redirect('https://stackvault.shop/login.html?error=invalid_telegram_signature');
+      }
+    }
+
+    const tgId = Number(telegramData.id);
+    let user = await queryOne('SELECT * FROM users WHERE telegram_id = ?', [tgId]);
+
+    if (!user) {
+      const username = telegramData.username || telegramData.first_name || `tg_${tgId}`;
+      const email = `${tgId}@telegram.stackvault.xyz`;
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+      const result = await query(
+        'INSERT INTO users (email, username, password_hash, telegram_id, balance) VALUES (?, ?, ?, ?, 0)',
+        [email, username, passwordHash, tgId]
+      );
+      const userId = result.insertId;
+
+      try {
+        const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
+        const depositAddress = getDepositAddress(userId, masterSecret);
+        await query('UPDATE users SET deposit_address = ? WHERE id = ?', [depositAddress, userId]);
+      } catch (err) {}
+
+      user = await queryOne('SELECT * FROM users WHERE id = ?', [userId]);
+    } else {
+      if (!user.deposit_address) {
+        try {
+          const masterSecret = process.env.DEPOSIT_MASTER_SECRET || '16e459d4b07f3fbd7fa3ef7e0c5bb0970a56e31ae662f9a2fe9faf919c5d3089';
+          user.deposit_address = getDepositAddress(user.id, masterSecret);
+          await query('UPDATE users SET deposit_address = ? WHERE id = ?', [user.deposit_address, user.id]);
+        } catch (e) {}
+      }
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    const safeUser = {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      balance: user.balance,
+      deposit_address: user.deposit_address,
+      telegram_id: user.telegram_id,
+      role: user.role,
+      created_at: user.created_at,
+    };
+
+    const redirectUrl = `https://stackvault.shop/login.html?tg_token=${encodeURIComponent(token)}&tg_user=${encodeURIComponent(JSON.stringify(safeUser))}`;
+    return res.redirect(redirectUrl);
+  } catch (error) {
+    console.error('Telegram callback error:', error);
+    return res.redirect('https://stackvault.shop/login.html?error=server_error');
+  }
+});
+
 // POST /api/auth/link-telegram
 router.post('/link-telegram', authenticateToken, async (req, res) => {
   try {

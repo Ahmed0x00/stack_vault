@@ -173,7 +173,7 @@
       data-telegram-login="stackvault_bot"
       data-size="large"
       data-radius="10"
-      data-onauth="onTelegramAuth(user)"
+      data-auth-url="https://stackvault-api.stackvault.xyz/api/auth/telegram-callback"
       data-request-access="write">
     </script>
   </div>
@@ -261,6 +261,22 @@ async function apiFetch(endpoint, options = {}) {
 if (getToken() && getUser()) {
   window.location.href = 'home.html';
 }
+
+(function checkTgAuthRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('tg_token');
+  const userStr = params.get('tg_user');
+  const err = params.get('error');
+
+  if (token && userStr) {
+    try {
+      const user = JSON.parse(decodeURIComponent(userStr));
+      localStorage.setItem('sv_token', decodeURIComponent(token));
+      localStorage.setItem('sv_user', JSON.stringify(user));
+      window.location.href = 'home.html';
+    } catch (e) {}
+  }
+})();
 
 const emailInput = document.querySelector('.field input[type="email"]');
 const passwordInput = document.querySelector('.field input[type="password"]');
