@@ -22,9 +22,17 @@ router.post('/', authenticateToken, async (req, res) => {
 
   try {
     // Fetch product details
-    const product = await prodseller.getProduct(productId);
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found or unavailable' });
+    let product;
+    if (productId === 'dummy-free-test') {
+      product = {
+        name: 'Free Test Key',
+        price: 0
+      };
+    } else {
+      product = await prodseller.getProduct(productId);
+      if (!product) {
+        return res.status(404).json({ error: 'Product not found or unavailable' });
+      }
     }
 
     const costCents = dollarsToCents(product.price || 0);
@@ -60,8 +68,16 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     // Call ProdSeller API
-    const idempotencyKey = `web_${userId}_${crypto.randomBytes(4).toString('hex')}`;
-    const apiResult = await prodseller.createOrder(productId, qty, idempotencyKey);
+    let apiResult;
+    if (productId === 'dummy-free-test') {
+      apiResult = {
+        orderId: `DUMMY-${Math.floor(Math.random() * 1000000)}`,
+        deliveredKeys: Array.from({ length: qty }).map((_, i) => `TEST-KEY-${Math.floor(Math.random() * 10000)}-${i + 1}`),
+      };
+    } else {
+      const idempotencyKey = `web_${userId}_${crypto.randomBytes(4).toString('hex')}`;
+      apiResult = await prodseller.createOrder(productId, qty, idempotencyKey);
+    }
 
     if (!apiResult || apiResult.error) {
       // REFUND if API call failed

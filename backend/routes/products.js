@@ -28,6 +28,19 @@ function categorizeProduct(name = '') {
   return { id: 'general', name: 'Digital Services' };
 }
 
+const DUMMY_PRODUCT = {
+  id: 'dummy-free-test',
+  name: 'Free Test Key',
+  category: 'general',
+  categoryName: 'Digital Services',
+  costPrice: 0,
+  price: 0,
+  priceCents: 0,
+  stock: 999,
+  inStock: true,
+  description: 'A free dummy product to test the purchasing flow without spending balance.'
+};
+
 // GET /api/products
 router.get('/', async (req, res) => {
   try {
@@ -68,6 +81,8 @@ router.get('/', async (req, res) => {
       };
     });
 
+    processedProducts.unshift(DUMMY_PRODUCT);
+
     res.json({ products: processedProducts });
   } catch (error) {
     console.error('Fetch products error:', error);
@@ -78,6 +93,10 @@ router.get('/', async (req, res) => {
 // GET /api/products/:id
 router.get('/:id', async (req, res) => {
   try {
+    if (req.params.id === 'dummy-free-test') {
+      return res.json({ product: DUMMY_PRODUCT });
+    }
+
     const p = await prodseller.getProduct(req.params.id);
     if (!p) {
       return res.status(404).json({ error: 'Product not found' });
