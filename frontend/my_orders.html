@@ -1550,7 +1550,7 @@ function wireShellAuth() {
 
 async function downloadOrder(orderId) {
   try {
-    const response = await fetch(`${API_BASE}/api/orders/${orderId}/download`, {
+    const response = await fetch(`${API_BASE}/orders/${orderId}/download`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (response.status === 401 || response.status === 403) {
