@@ -784,7 +784,7 @@ function wireShellAuth() {
 }
 
 function renderProductCard(product) {
-  const stockLabel = product.inStock ? `In Stock (${product.stock || 0})` : 'Out of Stock';
+  const stockLabel = product.inStock ? 'In Stock' : 'Out of Stock';
   const stockClass = product.inStock ? 'badge-stock' : 'badge-stock-out';
   const price = typeof product.price === 'number' ? product.price.toFixed(2) : product.price;
   const desc = (product.description || '').replace(/</g, '&lt;');
