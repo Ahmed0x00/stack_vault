@@ -325,7 +325,11 @@
             color: var(--text-dim);
             line-height: 1.5;
             margin-bottom: 0.75rem;
-            min-height: 2.3em;
+            height: 3em;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .tag-chip {
@@ -1062,7 +1066,7 @@ function filterProducts() {
 }
 
 function renderCard(product) {
-  const stockLabel = product.inStock ? 'In Stock' : 'Out of Stock';
+  const stockLabel = product.inStock ? `In Stock (${product.stock || 0})` : 'Out of Stock';
   const price = typeof product.price === 'number' ? product.price.toFixed(2) : product.price;
   const desc = (product.description || '').replace(/</g, '&lt;');
   const name = (product.name || '').replace(/</g, '&lt;');
