@@ -1584,22 +1584,35 @@ function showKeysModal(order) {
   if (existing) existing.remove();
 
   const keys = order.keys || [];
+  const maxDisplay = 10;
+  const displayKeys = keys.slice(0, maxDisplay);
+  const hiddenCount = keys.length - maxDisplay;
+
   const overlay = document.createElement('div');
   overlay.id = 'sv-keys-modal';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-  const keysHtml = keys.map((k) =>
+  
+  let keysHtml = displayKeys.map((k) =>
     `<div style="display:flex;gap:8px;margin-bottom:8px;"><input readonly value="${String(k).replace(/"/g, '&quot;')}" style="flex:1;background:#161922;border:1px solid #22252e;border-radius:8px;padding:10px;color:#f4f4f6;font-size:13px;"><button type="button" data-copy="${String(k).replace(/"/g, '&quot;')}" style="background:#6d5ef8;color:#fff;border:none;border-radius:8px;padding:8px 12px;cursor:pointer;">Copy</button></div>`
   ).join('');
 
+  if (hiddenCount > 0) {
+    keysHtml += `<p style="color:#9a9ca6;font-size:13px;text-align:center;margin-top:12px;">...and ${hiddenCount} more keys (Download to view all)</p>`;
+  }
+
   overlay.innerHTML = `
-    <div style="background:#111319;border:1px solid #22252e;border-radius:14px;padding:24px;max-width:480px;width:100%;">
+    <div style="background:#111319;border:1px solid #22252e;border-radius:14px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;">
       <h3 style="margin:0 0 4px;font-size:18px;">Order #${order.id}</h3>
       <p style="color:#9a9ca6;font-size:13px;margin:0 0 16px;">${order.productName || ''} · Qty ${order.quantity || 1}</p>
       ${keysHtml || '<p style="color:#9a9ca6;">No keys available for this order.</p>'}
-      <button type="button" id="sv-keys-close" style="width:100%;margin-top:12px;background:#6d5ef8;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:600;cursor:pointer;">Close</button>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        ${keys.length > 0 ? `<button type="button" id="sv-keys-download" style="flex:1;background:#2d323f;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-download"></i> Download All</button>` : ''}
+        <button type="button" id="sv-keys-close" style="flex:1;background:#6d5ef8;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:600;cursor:pointer;">Close</button>
+      </div>
     </div>
   `;
   document.body.appendChild(overlay);
+  
   overlay.querySelectorAll('[data-copy]').forEach((btn) => {
     btn.addEventListener('click', () => {
       navigator.clipboard.writeText(btn.dataset.copy).then(() => {
@@ -1608,6 +1621,19 @@ function showKeysModal(order) {
       });
     });
   });
+
+  const downloadBtn = overlay.querySelector('#sv-keys-download');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      downloadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Downloading...';
+      downloadBtn.disabled = true;
+      downloadOrder(order.id).finally(() => {
+        downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i> Download All';
+        downloadBtn.disabled = false;
+      });
+    });
+  }
+
   overlay.querySelector('#sv-keys-close').addEventListener('click', () => overlay.remove());
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 }

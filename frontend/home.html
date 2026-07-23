@@ -820,9 +820,11 @@ async function loadProducts() {
     }
     const top = products.slice(0, 6);
     grid.innerHTML = top.map(renderProductCard).join('');
-    grid.querySelectorAll('.buy-btn').forEach((btn) => {
+    
+    // Bind all buy buttons (both static and dynamic)
+    document.querySelectorAll('.buy-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        window.location.href = `product_details.html?id=${btn.dataset.productId}`;
+        openBuyModal(btn.dataset.productId);
       });
     });
   } catch (err) {
@@ -844,6 +846,7 @@ wireShellAuth();
 loadProducts();
 </script>
 
+  <script src="js/buy_modal.js"></script>
   <script src="js/brands.js"></script>
 </body>
 </html>

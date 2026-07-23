@@ -1084,7 +1084,7 @@ function renderCard(product) {
         </div>
         <div class="card-desc">${desc}</div>
         <div class="card-price">$${price}</div>
-        <a class="btn btn-buy-card" href="product_details.html?id=${encodeURIComponent(product.id)}"><i class="fa-solid fa-cart-shopping"></i> Buy Now</a>
+        <button class="btn btn-buy-card" onclick="openBuyModal('${product.id}')"><i class="fa-solid fa-cart-shopping"></i> Buy Now</button>
       </div>
     </div>
   `;
@@ -1163,6 +1163,7 @@ wireShellAuth();
 loadProducts();
 </script>
 
+  <script src="js/buy_modal.js"></script>
   <script src="js/brands.js"></script>
 </body>
 

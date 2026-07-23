@@ -26,6 +26,9 @@ function getBrandLogoUrl(productName) {
   for (const brand of BRAND_DOMAINS) {
     for (const keyword of brand.keywords) {
       if (nameLower.includes(keyword)) {
+        if (brand.domain === 'adobe.com') {
+          return 'https://www.adobe.com/favicon.ico';
+        }
         return `https://icons.duckduckgo.com/ip3/${brand.domain}.ico`;
       }
     }
