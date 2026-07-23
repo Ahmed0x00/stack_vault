@@ -296,6 +296,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg>
       Support
     </a>
+    <a class="nav-item logout-nav-btn" href="#" style="color:#f66161;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Logout
+    </a>
   </nav>
 
   <div class="sidebar-spacer"></div>
@@ -439,7 +443,7 @@ function wireShellAuth() {
   const balanceEl = document.querySelector('.balance-amount');
   const avatarEl = document.querySelector('.top-user .avatar');
   const nameEl = document.querySelector('.top-user span');
-  const logoutLink = document.querySelector('.user-dropdown a[href="login.html"]');
+  const logoutLinks = document.querySelectorAll('.user-dropdown a[href="login.html"], .sidebar .logout-nav-btn');
 
   document.querySelectorAll('.nav-item').forEach((link) => {
     const text = link.textContent.trim();
@@ -457,14 +461,14 @@ function wireShellAuth() {
     contactBtn.rel = 'noopener noreferrer';
   }
 
-  if (logoutLink) {
-    logoutLink.addEventListener('click', (e) => {
+  logoutLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
       e.preventDefault();
       localStorage.removeItem('sv_token');
       localStorage.removeItem('sv_user');
       window.location.href = 'login.html';
     });
-  }
+  });
 
   if (avatarEl) avatarEl.textContent = (user.username || 'U').charAt(0).toUpperCase();
   if (nameEl) nameEl.textContent = user.username || 'User';
