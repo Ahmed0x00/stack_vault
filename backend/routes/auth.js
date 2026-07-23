@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const result = await query(
+    console.log("INSERTING TG_ID:", tgId); const result = await query(
       'INSERT INTO users (email, username, password_hash, balance) VALUES (?, ?, ?, 0)',
       [email.toLowerCase().trim(), username.trim(), passwordHash]
     );
@@ -238,7 +238,7 @@ router.get('/telegram-callback', async (req, res) => {
       const randomPassword = crypto.randomBytes(16).toString('hex');
       const passwordHash = await bcrypt.hash(randomPassword, 10);
 
-      const result = await query(
+      console.log("INSERTING TG_ID:", tgId); const result = await query(
         'INSERT INTO users (email, username, password_hash, telegram_id, balance) VALUES (?, ?, ?, ?, 0)',
         [email, tgUsername, passwordHash, tgId]
       );
